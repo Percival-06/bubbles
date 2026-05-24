@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+
+# 模型与数据（重要：避免大文件污染仓库）
+*.pt
+*.pth
+*.ckpt
+*.npz
+data/
+logs/
+runs/
+wandb/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
