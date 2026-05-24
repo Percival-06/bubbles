@@ -19,7 +19,7 @@ WATER_DENSITY = 1.0        # 水的参考密度
 BUOYANCY_ACCEL = 300       # 浮力加速度（像素/秒²）
 DRAG_COEFF = 0.95          # 水阻力系数（每帧）
 VOLUME_TO_RADIUS = 0.5     # 体积→半径缩放因子（便于视觉）
-BASE_RADIUS = 20
+BASE_RADIUS = 30
 MAX_ENERGY = 100
 ENERGY_GAIN = 20.0         # 收集一个能量种子的能量回复
 
@@ -27,3 +27,19 @@ ENERGY_GAIN = 20.0         # 收集一个能量种子的能量回复
 COLLECTIBLE_RADIUS = 12
 ENERGY_COLOR = (255, 220, 50)       # 能量种子：金色
 BUBBLE_SMALL_COLOR = (150, 200, 255) # 小泡泡：浅蓝
+
+# 字体设置
+import os
+# 尝试加载系统自带的中文字体（按优先级排列）
+_FONT_CANDIDATES = [
+    "C:/Windows/Fonts/msyh.ttc",      # 微软雅黑
+    "C:/Windows/Fonts/simhei.ttf",    # 黑体
+    "C:/Windows/Fonts/simsun.ttc",    # 宋体
+    "C:/Windows/Fonts/Deng.ttf",      # 等线
+    "C:/Windows/Fonts/msyhbd.ttc",    # 微软雅黑加粗
+]
+FONT_PATH = None
+for _f in _FONT_CANDIDATES:
+    if os.path.exists(_f):
+        FONT_PATH = _f
+        break

@@ -3,7 +3,7 @@ from settings import *
 
 class Renderer:
     def __init__(self):
-        self.font = pygame.font.Font(None, 36)
+        self.font = pygame.font.Font(FONT_PATH, 36) if FONT_PATH else pygame.font.Font(None, 36)
 
     def render(self, screen, player, level):
         screen.fill(WATER_COLOR)
