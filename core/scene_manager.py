@@ -46,6 +46,8 @@ class SceneManager:
                 self.start_game(self.current_level_name)
             elif result == "menu":
                 self.scene = "menu"
+            elif result == "quit":
+                self.running = False
     
     def update(self, dt):
         if self.scene == "game":

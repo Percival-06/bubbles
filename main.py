@@ -11,7 +11,7 @@ def main():
     
     manager = SceneManager(screen)
     
-    while True:
+    while manager.running:
         dt = clock.tick(FPS) / 1000.0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -21,6 +21,9 @@ def main():
         manager.update(dt)
         manager.render(screen)
         pygame.display.flip()
+    
+    pygame.quit()
+    sys.exit()
 
 if __name__ == "__main__":
     main()
