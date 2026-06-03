@@ -1,5 +1,6 @@
 import pygame
 from settings import *
+from ui.background import draw_ocean_background
 
 class Renderer:
     def __init__(self):
@@ -7,7 +8,7 @@ class Renderer:
         self.small_font = pygame.font.Font(FONT_PATH, 22) if FONT_PATH else pygame.font.Font(None, 22)
 
     def render(self, screen, player, level):
-        screen.fill(WATER_COLOR)
+        draw_ocean_background(screen)
 
         # 绘制障碍物
         for plat in level.platforms:

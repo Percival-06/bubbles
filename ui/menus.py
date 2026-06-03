@@ -1,5 +1,6 @@
 import pygame
 from settings import *
+from ui.background import RisingBubbleField, draw_ocean_background
 from world.level_parser import Level
 
 
@@ -68,7 +69,7 @@ class ButtonMenu:
 
     def render(self, screen, subtitle=None, fill_background=True):
         if fill_background:
-            screen.fill((16, 36, 66))
+            draw_ocean_background(screen)
         title_text = self.font.render(self.title, True, (255, 255, 210))
         screen.blit(title_text, title_text.get_rect(center=(SCREEN_WIDTH // 2, 105)))
 
@@ -97,6 +98,7 @@ class ButtonMenu:
 
 class MainMenu(ButtonMenu):
     def __init__(self):
+        self.bubble_field = RisingBubbleField()
         super().__init__("泡泡上升", [
             {"label": "开始游戏", "action": "start"},
             {"label": "继续游戏", "action": "continue"},
@@ -104,6 +106,11 @@ class MainMenu(ButtonMenu):
             {"label": "设置", "action": "settings"},
             {"label": "退出", "action": "quit"},
         ], start_y=200)
+
+    def render(self, screen, subtitle=None, fill_background=True):
+        draw_ocean_background(screen)
+        self.bubble_field.draw(screen)
+        super().render(screen, subtitle, fill_background=False)
 
 
 class PauseMenu(ButtonMenu):
