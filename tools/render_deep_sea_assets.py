@@ -136,19 +136,6 @@ def make_background(width, height):
     add_caustics(pixels, width, height)
     add_reef(pixels, width, height)
 
-    bubble_specs = [
-        (0.08, 0.68, 0.035, 0.42),
-        (0.17, 0.4, 0.016, 0.52),
-        (0.28, 0.73, 0.025, 0.38),
-        (0.44, 0.31, 0.012, 0.48),
-        (0.58, 0.62, 0.03, 0.34),
-        (0.72, 0.42, 0.018, 0.45),
-        (0.84, 0.72, 0.04, 0.28),
-        (0.92, 0.28, 0.014, 0.5),
-    ]
-    for bx, by, br, alpha in bubble_specs:
-        add_bubble(pixels, width, height, bx * width, by * height, br * min(width, height), alpha)
-
     add_vignette(pixels, width, height)
     return pixels
 

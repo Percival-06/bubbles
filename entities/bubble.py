@@ -1,5 +1,6 @@
 import pygame
 from settings import *
+from ui.bubble_sprite import draw_photo_bubble
 
 class Bubble:
     def __init__(self, x, y):
@@ -69,11 +70,16 @@ class Bubble:
         # 3. 水阻力（模拟缓和运动）
         self.vy *= DRAG_COEFF
 
-        # 4. 更新位置（dt 已乘）
+        # 4. 更新位置（dt 已乘），分轴处理平台碰撞
+        old_x = self.x
+        old_y = self.y
         self.x += self.vx * dt
-        self.y += self.vy * dt
+        self._resolve_platform_collisions(level, old_x, old_y, axis="x")
 
-        # 5. 简单边界碰撞（保留，后续需要替换为关卡碰撞）
+        self.y += self.vy * dt
+        self._resolve_platform_collisions(level, old_x, old_y, axis="y")
+
+        # 5. 简单边界碰撞
         margin = self.radius
         self.x = max(margin, min(SCREEN_WIDTH - margin, self.x))
         self.y = max(margin, min(SCREEN_HEIGHT - margin, self.y))
@@ -85,30 +91,58 @@ class Bubble:
 
         # 7. 污染影响能量消耗（后期扩展）
 
+    def _resolve_platform_collisions(self, level, old_x, old_y, axis):
+        if not level:
+            return
+
+        for px, py, pw, ph in getattr(level, "platforms", []):
+            if axis == "x":
+                overlaps_y = self.y + self.radius > py and self.y - self.radius < py + ph
+                if not overlaps_y:
+                    continue
+
+                if self.vx > 0 and old_x + self.radius <= px and self.x + self.radius >= px:
+                    self.x = px - self.radius
+                    self.vx = 0
+                elif self.vx < 0 and old_x - self.radius >= px + pw and self.x - self.radius <= px + pw:
+                    self.x = px + pw + self.radius
+                    self.vx = 0
+                elif self._intersects_rect(px, py, pw, ph):
+                    if old_x + self.radius <= px:
+                        self.x = px - self.radius
+                    elif old_x - self.radius >= px + pw:
+                        self.x = px + pw + self.radius
+                    self.vx = 0
+            else:
+                overlaps_x = self.x + self.radius > px and self.x - self.radius < px + pw
+                if not overlaps_x:
+                    continue
+
+                if self.vy > 0 and old_y + self.radius <= py and self.y + self.radius >= py:
+                    self.y = py - self.radius
+                    self.vy = 0
+                elif self.vy < 0 and old_y - self.radius >= py + ph and self.y - self.radius <= py + ph:
+                    self.y = py + ph + self.radius
+                    self.vy = 0
+                elif self._intersects_rect(px, py, pw, ph):
+                    if old_y + self.radius <= py:
+                        self.y = py - self.radius
+                    elif old_y - self.radius >= py + ph:
+                        self.y = py + ph + self.radius
+                    self.vy = 0
+
+    def _intersects_rect(self, x, y, w, h):
+        return not (
+            self.x + self.radius <= x
+            or self.x - self.radius >= x + w
+            or self.y + self.radius <= y
+            or self.y - self.radius >= y + h
+        )
+
     def handle_event(self, event):
         """预留玩家实体事件入口；释放小泡泡由场景统一处理，避免重复触发。"""
         return False
 
     def draw(self, screen):
-        # 内部光晕（能量强度）
-        inner_alpha = int(80 + self.energy / MAX_ENERGY * 175)  # 80~255
-        inner_surf = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
-        pygame.draw.circle(inner_surf, (255, 255, 200, inner_alpha),
-                           (self.radius, self.radius), int(self.radius*0.7))
-        screen.blit(inner_surf, (self.x - self.radius, self.y - self.radius))
-
-        # 泡泡主体（半透明球体）
-        outer_alpha = 180
         pollution_ratio = min(1.0, self.contamination / POLLUTION_LIMIT)
-        color = (
-            int(BUBBLE_COLOR[0] * (1 - pollution_ratio) + 150 * pollution_ratio),
-            int(BUBBLE_COLOR[1] * (1 - pollution_ratio) + 20 * pollution_ratio),
-            int(BUBBLE_COLOR[2] * (1 - pollution_ratio) + 170 * pollution_ratio),
-        )
-        bubble_surf = pygame.Surface((self.radius*2, self.radius*2), pygame.SRCALPHA)
-        pygame.draw.circle(bubble_surf, (*color, outer_alpha),
-                           (self.radius, self.radius), self.radius, 0)
-        # 边框高光
-        pygame.draw.circle(bubble_surf, (255, 255, 255, 100),
-                           (self.radius, self.radius), self.radius, 2)
-        screen.blit(bubble_surf, (self.x - self.radius, self.y - self.radius))
+        draw_photo_bubble(screen, (self.x, self.y), self.radius, pollution_ratio)

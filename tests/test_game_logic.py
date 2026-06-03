@@ -140,6 +140,45 @@ class BubbleTests(unittest.TestCase):
 
         self.assertLess(bubble.y, 100)
 
+    def test_platform_blocks_bubble_from_below(self):
+        class NoPressedKeys:
+            def __getitem__(self, key):
+                return False
+
+        level = Level("training")
+        level.platforms = [[0, 80, 200, 20]]
+        bubble = Bubble(100, 150)
+        bubble.vy = -300
+        original_get_pressed = pygame.key.get_pressed
+        pygame.key.get_pressed = lambda: NoPressedKeys()
+
+        try:
+            bubble.update(0.2, level)
+        finally:
+            pygame.key.get_pressed = original_get_pressed
+
+        self.assertGreaterEqual(bubble.y - bubble.radius, 100)
+        self.assertEqual(bubble.vy, 0)
+
+    def test_platform_blocks_bubble_from_side(self):
+        class RightPressedKeys:
+            def __getitem__(self, key):
+                return key in (pygame.K_RIGHT, pygame.K_d)
+
+        level = Level("training")
+        level.platforms = [[140, 0, 20, 200]]
+        bubble = Bubble(100, 100)
+        original_get_pressed = pygame.key.get_pressed
+        pygame.key.get_pressed = lambda: RightPressedKeys()
+
+        try:
+            bubble.update(0.5, level)
+        finally:
+            pygame.key.get_pressed = original_get_pressed
+
+        self.assertLessEqual(bubble.x + bubble.radius, 140)
+        self.assertEqual(bubble.vx, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

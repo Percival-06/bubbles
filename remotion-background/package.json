@@ -5,6 +5,10 @@
     "studio": "remotion studio",
     "cover": "remotion still CoverStill ../assets/backgrounds/cover_deep_sea.png",
     "menu": "remotion still MainMenuBackground ../assets/backgrounds/main_menu_deep_sea.png --frame=45",
+    "bubble:large": "remotion still BubbleLarge ../assets/sprites/bubble_large.png --transparent",
+    "bubble:small": "remotion still BubbleSmall ../assets/sprites/bubble_small.png --transparent",
+    "bubbles": "npm run bubble:large && npm run bubble:small",
+    "energy": "remotion still EnergySeed ../assets/sprites/energy_seed.png --transparent",
     "render-menu-loop": "remotion render MainMenuLoop ../assets/backgrounds/main_menu_loop.mp4"
   },
   "dependencies": {

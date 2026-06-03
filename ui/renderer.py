@@ -1,6 +1,8 @@
 import pygame
 from settings import *
 from ui.background import draw_ocean_background
+from ui.bubble_sprite import draw_photo_bubble
+from ui.energy_sprite import draw_energy_seed
 
 class Renderer:
     def __init__(self):
@@ -19,13 +21,9 @@ class Renderer:
         for col in level.collectibles:
             x, y, typ = col
             if typ == "energy":
-                # 金色能量球，带发光效果
-                pygame.draw.circle(screen, ENERGY_COLOR, (int(x), int(y)), COLLECTIBLE_RADIUS)
-                pygame.draw.circle(screen, (255, 255, 200), (int(x)-2, int(y)-2), COLLECTIBLE_RADIUS//2, 1)
+                draw_energy_seed(screen, (x, y), COLLECTIBLE_RADIUS)
             elif typ == "bubble":
-                # 浅蓝小泡泡
-                pygame.draw.circle(screen, BUBBLE_SMALL_COLOR, (int(x), int(y)), COLLECTIBLE_RADIUS)
-                pygame.draw.circle(screen, (255, 255, 255), (int(x)-2, int(y)-2), COLLECTIBLE_RADIUS//2, 1)
+                draw_photo_bubble(screen, (x, y), COLLECTIBLE_RADIUS, alpha=225)
 
         # 绘制危险区
         for haz in level.hazards:
