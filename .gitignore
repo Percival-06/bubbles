@@ -35,3 +35,4 @@ node_modules/
 *.xlsx
 *.pdf
 save.json
+.superpowers/

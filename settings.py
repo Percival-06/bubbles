@@ -48,3 +48,12 @@ for _f in _FONT_CANDIDATES:
     if os.path.exists(_f):
         FONT_PATH = _f
         break
+
+MENU_TITLE_FONT_PATH = next(
+    (_f for _f in ("C:/Windows/Fonts/msyhbd.ttc", "C:/Windows/Fonts/simhei.ttf") if os.path.exists(_f)),
+    FONT_PATH,
+)
+MENU_TEXT_FONT_PATH = next(
+    (_f for _f in ("C:/Windows/Fonts/Deng.ttf", "C:/Windows/Fonts/msyh.ttc") if os.path.exists(_f)),
+    FONT_PATH,
+)

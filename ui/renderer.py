@@ -8,6 +8,7 @@ class Renderer:
     def __init__(self):
         self.font = pygame.font.Font(FONT_PATH, 28) if FONT_PATH else pygame.font.Font(None, 28)
         self.small_font = pygame.font.Font(FONT_PATH, 22) if FONT_PATH else pygame.font.Font(None, 22)
+        self.settings_button_rect = pygame.Rect(SCREEN_WIDTH - 58, 14, 42, 42)
 
     def render(self, screen, player, level):
         draw_ocean_background(screen)
@@ -41,6 +42,11 @@ class Renderer:
         player.draw(screen)
 
         self._render_hud(screen, player, level)
+        self._draw_settings_button(screen)
+
+    def is_settings_button_hit(self, pos):
+        rect = getattr(self, "settings_button_rect", pygame.Rect(SCREEN_WIDTH - 58, 14, 42, 42))
+        return rect.collidepoint(pos)
 
     def _render_hud(self, screen, player, level):
         title = self.font.render(level.title, True, TEXT_COLOR)
@@ -57,6 +63,26 @@ class Renderer:
             (220, 235, 245),
         )
         screen.blit(density_text, (12, 100))
+
+    def _draw_settings_button(self, screen):
+        rect = self.settings_button_rect
+        layer = pygame.Surface((rect.width + 16, rect.height + 16), pygame.SRCALPHA)
+        local = pygame.Rect(8, 8, rect.width, rect.height)
+        pygame.draw.ellipse(layer, (100, 205, 255, 42), local.inflate(12, 12))
+        pygame.draw.ellipse(layer, (70, 168, 225, 118), local)
+        pygame.draw.ellipse(layer, (235, 252, 255, 188), local, 2)
+        pygame.draw.arc(layer, (255, 255, 255, 126), local.inflate(-7, -7), 3.4, 5.9, 2)
+
+        gear_center = pygame.Vector2(local.centerx, local.centery)
+        tooth_color = (246, 254, 255, 232)
+        for angle in range(0, 360, 45):
+            vector = pygame.Vector2(0, -1).rotate(angle)
+            start = tuple(int(value) for value in gear_center + vector * 10)
+            end = tuple(int(value) for value in gear_center + vector * 14)
+            pygame.draw.line(layer, tooth_color, start, end, 3)
+        pygame.draw.circle(layer, tooth_color, tuple(int(value) for value in gear_center), 10, 2)
+        pygame.draw.circle(layer, tooth_color, tuple(int(value) for value in gear_center), 3)
+        screen.blit(layer, (rect.x - 8, rect.y - 8))
 
     def _draw_bar(self, screen, x, y, w, h, ratio, color, label):
         ratio = max(0.0, min(1.0, ratio))

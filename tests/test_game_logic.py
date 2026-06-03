@@ -32,6 +32,7 @@ except ModuleNotFoundError:
 
     pygame_stub.Rect = Rect
     pygame_stub.KEYDOWN = 1
+    pygame_stub.MOUSEBUTTONDOWN = 2
     pygame_stub.K_LEFT = 276
     pygame_stub.K_RIGHT = 275
     pygame_stub.K_a = 97
@@ -46,8 +47,11 @@ except ModuleNotFoundError:
 import pygame
 
 from core.save_manager import SaveManager
+from core.scene_manager import SceneManager
 from entities.bubble import Bubble
 from settings import MAX_ENERGY, POLLUTION_LIMIT
+from ui.menus import ButtonMenu, SettingsMenu
+from ui.renderer import Renderer
 from world.level_parser import Level
 
 
@@ -178,6 +182,100 @@ class BubbleTests(unittest.TestCase):
 
         self.assertLessEqual(bubble.x + bubble.radius, 140)
         self.assertEqual(bubble.vx, 0)
+
+
+class MenuStyleTests(unittest.TestCase):
+    def test_glass_button_draws_translucent_highlight_and_border(self):
+        menu = ButtonMenu.__new__(ButtonMenu)
+        draw_button = getattr(menu, "_draw_glass_button", None)
+
+        self.assertTrue(callable(draw_button))
+
+        if not hasattr(pygame, "init"):
+            return
+
+        pygame.init()
+        screen = pygame.Surface((360, 120), pygame.SRCALPHA)
+        rect = pygame.Rect(25, 25, 310, 48)
+
+        draw_button(screen, rect, hovered=True, disabled=False)
+
+        center = screen.get_at(rect.center)
+        highlight = screen.get_at((rect.centerx, rect.top + 8))
+        border = screen.get_at((rect.left + 1, rect.centery))
+
+        self.assertGreater(center.a, 0)
+        self.assertGreater(highlight.a, center.a)
+        self.assertGreater(border.a, center.a)
+
+
+class SceneManagerMenuTests(unittest.TestCase):
+    def test_game_settings_button_opens_settings_and_returns_to_game(self):
+        manager = SceneManager.__new__(SceneManager)
+        manager.scene = "game"
+        manager.player = object()
+        manager.current_level = object()
+        manager.settings_return_scene = "menu"
+        manager.settings_menu = type("SettingsMenu", (), {
+            "refresh": lambda self, return_scene="menu": None,
+            "handle_event": lambda self, event: "back",
+        })()
+        manager.renderer = type("Renderer", (), {
+            "is_settings_button_hit": lambda self, pos: True,
+        })()
+
+        click = type("Event", (), {
+            "type": pygame.MOUSEBUTTONDOWN,
+            "button": 1,
+            "pos": (780, 24),
+        })()
+        manager._handle_game_event(click)
+
+        self.assertEqual(manager.scene, "settings")
+        self.assertEqual(manager.settings_return_scene, "game")
+
+        manager._handle_settings_event(type("Event", (), {"type": -1})())
+
+        self.assertEqual(manager.scene, "game")
+
+    def test_game_settings_menu_action_returns_to_main_menu(self):
+        manager = SceneManager.__new__(SceneManager)
+        manager.scene = "settings"
+        manager.settings_return_scene = "game"
+        manager.settings_menu = type("SettingsMenu", (), {
+            "handle_event": lambda self, event: "menu",
+        })()
+
+        manager._handle_settings_event(type("Event", (), {"type": -1})())
+
+        self.assertEqual(manager.scene, "menu")
+        self.assertEqual(manager.settings_return_scene, "menu")
+
+    def test_game_settings_menu_shows_resume_and_main_menu_actions(self):
+        captured = {}
+        menu = SettingsMenu.__new__(SettingsMenu)
+        menu.save_manager = type("SaveManager", (), {
+            "data": {"settings": {"music": True, "sfx": False}},
+        })()
+        menu.set_options = lambda options: captured.setdefault("options", options)
+
+        menu.refresh(return_scene="game")
+
+        labels = [option["label"] for option in captured["options"]]
+        actions = [option["action"] for option in captured["options"]]
+        self.assertIn("返回游戏", labels)
+        self.assertIn("返回主菜单", labels)
+        self.assertIn("back", actions)
+        self.assertIn("menu", actions)
+
+
+class RendererHudTests(unittest.TestCase):
+    def test_settings_button_hit_area_is_top_right_only(self):
+        renderer = Renderer.__new__(Renderer)
+
+        self.assertTrue(renderer.is_settings_button_hit((774, 26)))
+        self.assertFalse(renderer.is_settings_button_hit((730, 26)))
+        self.assertFalse(renderer.is_settings_button_hit((774, 70)))
 
 
 if __name__ == "__main__":

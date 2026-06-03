@@ -24,6 +24,7 @@ class SceneManager:
         self.player = None
         self.renderer = Renderer()
         self.last_result = None
+        self.settings_return_scene = "menu"
 
     def handle_event(self, event):
         if self.scene == "menu":
@@ -49,7 +50,8 @@ class SceneManager:
             self.level_select_menu.refresh()
             self.scene = "level_select"
         elif result == "settings":
-            self.settings_menu.refresh()
+            self.settings_return_scene = "menu"
+            self.settings_menu.refresh(self.settings_return_scene)
             self.scene = "settings"
         elif result == "quit":
             self.running = False
@@ -65,11 +67,21 @@ class SceneManager:
         result = self.settings_menu.handle_event(event)
         if isinstance(result, tuple) and result[0] == "toggle":
             self.save_manager.toggle_setting(result[1])
-            self.settings_menu.refresh()
+            self.settings_menu.refresh(self.settings_return_scene)
         elif result == "back":
+            self.scene = self.settings_return_scene
+            self.settings_return_scene = "menu"
+        elif result == "menu":
             self.scene = "menu"
+            self.settings_return_scene = "menu"
 
     def _handle_game_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.renderer.is_settings_button_hit(event.pos):
+                self.settings_return_scene = "game"
+                self.settings_menu.refresh(self.settings_return_scene)
+                self.scene = "settings"
+                return
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.scene = "pause"
             return
@@ -127,7 +139,7 @@ class SceneManager:
         elif self.scene == "level_select":
             self.level_select_menu.render(screen, "已解锁关卡可重复挑战")
         elif self.scene == "settings":
-            self.settings_menu.render(screen, "当前版本提供基础开关")
+            self._render_settings_scene(screen)
         elif self.scene == "game":
             self.renderer.render(screen, self.player, self.current_level)
         elif self.scene == "pause":
@@ -135,6 +147,18 @@ class SceneManager:
             self.pause_menu.render(screen)
         elif self.scene == "result":
             self.result_menu.render(screen)
+
+    def _render_settings_scene(self, screen):
+        subtitle = "当前版本提供基础开关"
+        if self.settings_return_scene == "game" and self.player and self.current_level:
+            self.renderer.render(screen, self.player, self.current_level)
+            mask = pygame.Surface((screen.get_width(), screen.get_height()))
+            mask.set_alpha(150)
+            mask.fill((0, 0, 0))
+            screen.blit(mask, (0, 0))
+            self.settings_menu.render(screen, subtitle, fill_background=False)
+        else:
+            self.settings_menu.render(screen, subtitle)
 
     def start_game(self, level_name):
         self.current_level = Level(level_name)

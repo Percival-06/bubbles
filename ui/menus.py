@@ -6,9 +6,9 @@ from world.level_parser import Level
 
 class ButtonMenu:
     def __init__(self, title, options, start_y=None):
-        self.font = pygame.font.Font(FONT_PATH, 46) if FONT_PATH else pygame.font.Font(None, 46)
-        self.small_font = pygame.font.Font(FONT_PATH, 30) if FONT_PATH else pygame.font.Font(None, 30)
-        self.hint_font = pygame.font.Font(FONT_PATH, 22) if FONT_PATH else pygame.font.Font(None, 22)
+        self.font = pygame.font.Font(MENU_TITLE_FONT_PATH, 48) if MENU_TITLE_FONT_PATH else pygame.font.Font(None, 48)
+        self.small_font = pygame.font.Font(MENU_TEXT_FONT_PATH, 30) if MENU_TEXT_FONT_PATH else pygame.font.Font(None, 30)
+        self.hint_font = pygame.font.Font(MENU_TEXT_FONT_PATH, 22) if MENU_TEXT_FONT_PATH else pygame.font.Font(None, 22)
         self.title = title
         self.options = options
         self.hover_index = 0
@@ -67,10 +67,53 @@ class ButtonMenu:
             if not self.options[self.hover_index].get("disabled", False):
                 break
 
+    def _draw_glass_button(self, screen, rect, hovered=False, disabled=False):
+        radius = 14
+        glow_pad = 12
+        layer = pygame.Surface((rect.width + glow_pad * 2, rect.height + glow_pad * 2), pygame.SRCALPHA)
+        local = pygame.Rect(glow_pad, glow_pad, rect.width, rect.height)
+
+        if disabled:
+            base_top = (115, 135, 154, 62)
+            base_bottom = (35, 52, 68, 108)
+            border = (185, 205, 222, 78)
+            highlight = (245, 252, 255, 55)
+        elif hovered:
+            pygame.draw.rect(layer, (110, 205, 255, 46), local.inflate(16, 16), border_radius=radius + 8)
+            base_top = (180, 232, 255, 104)
+            base_bottom = (28, 124, 188, 150)
+            border = (238, 252, 255, 226)
+            highlight = (255, 255, 255, 150)
+        else:
+            base_top = (142, 218, 250, 74)
+            base_bottom = (22, 92, 160, 126)
+            border = (218, 244, 255, 152)
+            highlight = (255, 255, 255, 100)
+
+        for y in range(rect.height):
+            t = y / max(1, rect.height - 1)
+            color = tuple(int(base_top[i] + (base_bottom[i] - base_top[i]) * t) for i in range(4))
+            line = pygame.Rect(local.left, local.top + y, local.width, 1)
+            pygame.draw.rect(layer, color, line)
+
+        mask = pygame.Surface(layer.get_size(), pygame.SRCALPHA)
+        pygame.draw.rect(mask, (255, 255, 255, 255), local, border_radius=radius)
+        layer.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+        shine = pygame.Rect(local.left + 10, local.top + 6, local.width - 20, max(8, local.height // 3))
+        pygame.draw.rect(layer, highlight, shine, border_radius=radius)
+        pygame.draw.line(layer, (255, 255, 255, 86), (local.left + 18, local.top + 7), (local.right - 18, local.top + 7), 1)
+        pygame.draw.rect(layer, border, local, 2, border_radius=radius)
+        pygame.draw.rect(layer, (255, 255, 255, 52), local.inflate(-7, -7), 1, border_radius=radius - 4)
+
+        screen.blit(layer, (rect.x - glow_pad, rect.y - glow_pad))
+
     def render(self, screen, subtitle=None, fill_background=True):
         if fill_background:
             draw_ocean_background(screen)
-        title_text = self.font.render(self.title, True, (255, 255, 210))
+        title_shadow = self.font.render(self.title, True, (4, 22, 42))
+        screen.blit(title_shadow, title_shadow.get_rect(center=(SCREEN_WIDTH // 2 + 2, 107)))
+        title_text = self.font.render(self.title, True, (246, 254, 232))
         screen.blit(title_text, title_text.get_rect(center=(SCREEN_WIDTH // 2, 105)))
 
         if subtitle:
@@ -81,17 +124,15 @@ class ButtonMenu:
             rect = self.buttons[i]
             disabled = option.get("disabled", False)
             if disabled:
-                color = (48, 58, 74)
                 text_color = (145, 150, 160)
             elif i == self.hover_index:
-                color = (95, 170, 235)
                 text_color = (255, 255, 255)
             else:
-                color = (42, 112, 182)
-                text_color = (245, 250, 255)
-            pygame.draw.rect(screen, color, rect, border_radius=8)
-            pygame.draw.rect(screen, (225, 240, 255), rect, 2, border_radius=8)
+                text_color = (238, 250, 255)
+            self._draw_glass_button(screen, rect, hovered=i == self.hover_index, disabled=disabled)
             label = option["label"]
+            text_shadow = self.small_font.render(label, True, (8, 32, 54))
+            screen.blit(text_shadow, text_shadow.get_rect(center=(rect.centerx + 1, rect.centery + 2)))
             text_surf = self.small_font.render(label, True, text_color)
             screen.blit(text_surf, text_surf.get_rect(center=rect.center))
 
@@ -165,13 +206,18 @@ class SettingsMenu(ButtonMenu):
         super().__init__("设置", [], start_y=230)
         self.refresh()
 
-    def refresh(self):
+    def refresh(self, return_scene="menu"):
         settings = self.save_manager.data["settings"]
-        self.set_options([
+        options = [
             {"label": f"背景音乐：{'开' if settings['music'] else '关'}", "action": ("toggle", "music")},
             {"label": f"音效：{'开' if settings['sfx'] else '关'}", "action": ("toggle", "sfx")},
-            {"label": "返回主菜单", "action": "back"},
-        ])
+        ]
+        if return_scene == "game":
+            options.append({"label": "返回游戏", "action": "back"})
+            options.append({"label": "返回主菜单", "action": "menu"})
+        else:
+            options.append({"label": "返回主菜单", "action": "back"})
+        self.set_options(options)
 
 
 class ResultMenu(ButtonMenu):
