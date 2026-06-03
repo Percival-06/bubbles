@@ -43,6 +43,8 @@ except ModuleNotFoundError:
     pygame_stub.draw = types.SimpleNamespace(circle=lambda *args, **kwargs: None)
     sys.modules["pygame"] = pygame_stub
 
+import pygame
+
 from core.save_manager import SaveManager
 from entities.bubble import Bubble
 from settings import MAX_ENERGY, POLLUTION_LIMIT
@@ -120,6 +122,23 @@ class BubbleTests(unittest.TestCase):
         bubble.collect_energy(20)
 
         self.assertEqual(bubble.energy, MAX_ENERGY)
+
+    def test_absorbed_bubble_rises_in_screen_coordinates(self):
+        class NoPressedKeys:
+            def __getitem__(self, key):
+                return False
+
+        bubble = Bubble(100, 100)
+        bubble.absorb()
+        original_get_pressed = pygame.key.get_pressed
+        pygame.key.get_pressed = lambda: NoPressedKeys()
+
+        try:
+            bubble.update(1 / 60, None)
+        finally:
+            pygame.key.get_pressed = original_get_pressed
+
+        self.assertLess(bubble.y, 100)
 
 
 if __name__ == "__main__":

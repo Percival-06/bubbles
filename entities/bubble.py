@@ -63,7 +63,7 @@ class Bubble:
 
         # 2. 垂直移动：根据密度相对于水的密度决定浮力方向
         density = self.get_density()
-        buoyancy = BUOYANCY_ACCEL * (WATER_DENSITY - density)  # 密度>水 → 负 → 下沉
+        buoyancy = BUOYANCY_ACCEL * (WATER_DENSITY - density)  # 密度<水 → 负 vy → 上浮
         self.vy += buoyancy * dt
 
         # 3. 水阻力（模拟缓和运动）
