@@ -3,14 +3,16 @@ from settings import *
 
 class Renderer:
     def __init__(self):
-        self.font = pygame.font.Font(FONT_PATH, 36) if FONT_PATH else pygame.font.Font(None, 36)
+        self.font = pygame.font.Font(FONT_PATH, 28) if FONT_PATH else pygame.font.Font(None, 28)
+        self.small_font = pygame.font.Font(FONT_PATH, 22) if FONT_PATH else pygame.font.Font(None, 22)
 
     def render(self, screen, player, level):
         screen.fill(WATER_COLOR)
 
         # 绘制障碍物
         for plat in level.platforms:
-            pygame.draw.rect(screen, (100, 100, 100), plat)
+            pygame.draw.rect(screen, (70, 82, 94), plat, border_radius=4)
+            pygame.draw.rect(screen, (120, 140, 150), plat, 1, border_radius=4)
 
         # 绘制收集物（能量种子 和 小泡泡）
         for col in level.collectibles:
@@ -26,15 +28,40 @@ class Renderer:
 
         # 绘制危险区
         for haz in level.hazards:
-            pygame.draw.rect(screen, (80, 0, 80), haz)
+            hazard_surf = pygame.Surface((haz[2], haz[3]), pygame.SRCALPHA)
+            hazard_surf.fill((130, 0, 135, 120))
+            screen.blit(hazard_surf, (haz[0], haz[1]))
+            pygame.draw.rect(screen, (220, 60, 220), haz, 2)
 
         # 绘制终点
         ex, ey = level.end_pos
-        pygame.draw.rect(screen, (255, 255, 0), (ex-20, ey-10, 40, 20))
+        pygame.draw.rect(screen, (245, 230, 80), (ex-28, ey-12, 56, 24), border_radius=6)
+        pygame.draw.rect(screen, (255, 255, 210), (ex-28, ey-12, 56, 24), 2, border_radius=6)
 
         # 绘制玩家
         player.draw(screen)
 
-        # 极简 HUD：显示泡泡的能量文字
-        energy_text = self.font.render(f"Energy: {int(player.energy)}", True, TEXT_COLOR)
-        screen.blit(energy_text, (10, 10))
+        self._render_hud(screen, player, level)
+
+    def _render_hud(self, screen, player, level):
+        title = self.font.render(level.title, True, TEXT_COLOR)
+        screen.blit(title, (12, 10))
+
+        self._draw_bar(screen, 12, 45, 170, 10, player.energy / MAX_ENERGY,
+                       (255, 225, 90), "生命能量")
+        self._draw_bar(screen, 12, 75, 170, 10, player.contamination / POLLUTION_LIMIT,
+                       (185, 65, 210), "污染")
+
+        density_text = self.small_font.render(
+            f"密度 {player.get_density():.2f}  能量种子 {level.collected_energy}/{level.total_energy}",
+            True,
+            (220, 235, 245),
+        )
+        screen.blit(density_text, (12, 100))
+
+    def _draw_bar(self, screen, x, y, w, h, ratio, color, label):
+        ratio = max(0.0, min(1.0, ratio))
+        pygame.draw.rect(screen, (30, 45, 60), (x, y, w, h), border_radius=4)
+        pygame.draw.rect(screen, color, (x, y, int(w * ratio), h), border_radius=4)
+        text = self.small_font.render(label, True, (220, 235, 245))
+        screen.blit(text, (x + w + 8, y - 7))

@@ -5,8 +5,8 @@ FPS = 60
 # 物理参数
 BASE_DENSITY = 1.0          # 水的密度
 BUOYANCY_FORCE = 0.5        # 密度差产生的加速度系数
-VOLUME_INCREMENT = 2.0      # 每次吸收/释放的体积变化量
-MASS_INCREMENT = 0.5        # 收集能量种子的质量增加
+VOLUME_INCREMENT = 8.0      # 每次吸收/释放的体积变化量
+MASS_INCREMENT = 2.5        # 收集能量种子的质量增加
 
 # 颜色
 WATER_COLOR = (10, 30, 60)
@@ -18,10 +18,15 @@ TEXT_COLOR = (255, 255, 255)
 WATER_DENSITY = 1.0        # 水的参考密度
 BUOYANCY_ACCEL = 300       # 浮力加速度（像素/秒²）
 DRAG_COEFF = 0.95          # 水阻力系数（每帧）
-VOLUME_TO_RADIUS = 0.5     # 体积→半径缩放因子（便于视觉）
-BASE_RADIUS = 30
+VOLUME_TO_RADIUS = 0.25    # 体积→半径缩放因子（便于视觉）
+BASE_RADIUS = 28
 MAX_ENERGY = 100
 ENERGY_GAIN = 20.0         # 收集一个能量种子的能量回复
+ENERGY_DRAIN = 2.0         # 每秒自然消耗
+POLLUTION_LIMIT = 100.0
+POLLUTION_RATE = 30.0      # 每秒污染增长
+POLLUTION_ENERGY_DRAIN = 6.0
+MIN_VOLUME = 14.0
 
 # 关卡参数
 COLLECTIBLE_RADIUS = 12
