@@ -1,0 +1,19 @@
+{
+  "name": "bubbles-remotion-background",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio",
+    "cover": "remotion still CoverStill ../assets/backgrounds/cover_deep_sea.png",
+    "menu": "remotion still MainMenuBackground ../assets/backgrounds/main_menu_deep_sea.png --frame=45",
+    "render-menu-loop": "remotion render MainMenuLoop ../assets/backgrounds/main_menu_loop.mp4"
+  },
+  "dependencies": {
+    "@remotion/renderer": "latest",
+    "remotion": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}

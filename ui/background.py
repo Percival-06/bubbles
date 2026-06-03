@@ -1,11 +1,16 @@
 import math
+import os
 import pygame
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT
 
 
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEEP_SEA_BACKGROUND = os.path.join(ROOT_DIR, "assets", "backgrounds", "main_menu_deep_sea.png")
 SURFACE_COLOR = (37, 143, 174)
 MID_WATER_COLOR = (13, 76, 116)
 DEEP_WATER_COLOR = (4, 26, 56)
+_background_source = None
+_scaled_backgrounds = {}
 
 
 def _lerp(a, b, t):
@@ -20,10 +25,20 @@ def _mix(c1, c2, t):
     )
 
 
-def draw_ocean_background(screen, elapsed=None):
-    if elapsed is None:
-        elapsed = pygame.time.get_ticks() / 1000.0
+def _get_background_image(size):
+    global _background_source
+    if not os.path.exists(DEEP_SEA_BACKGROUND):
+        return None
 
+    if _background_source is None:
+        _background_source = pygame.image.load(DEEP_SEA_BACKGROUND)
+
+    if size not in _scaled_backgrounds:
+        _scaled_backgrounds[size] = pygame.transform.smoothscale(_background_source, size)
+    return _scaled_backgrounds[size]
+
+
+def _draw_generated_ocean(screen, elapsed):
     width, height = screen.get_size()
     horizon = int(height * 0.42)
     for y in range(height):
@@ -35,6 +50,18 @@ def draw_ocean_background(screen, elapsed=None):
             t = (y - horizon) / max(1, height - horizon)
             color = _mix(MID_WATER_COLOR, DEEP_WATER_COLOR, t)
         screen.fill(color, (0, y, width, 1))
+
+
+def draw_ocean_background(screen, elapsed=None):
+    if elapsed is None:
+        elapsed = pygame.time.get_ticks() / 1000.0
+
+    width, height = screen.get_size()
+    background = _get_background_image((width, height))
+    if background:
+        screen.blit(background, (0, 0))
+    else:
+        _draw_generated_ocean(screen, elapsed)
 
     light_layer = pygame.Surface((width, height), pygame.SRCALPHA)
     for i, x in enumerate((-90, 130, 340, 570)):
@@ -57,22 +84,23 @@ def draw_ocean_background(screen, elapsed=None):
         pygame.draw.lines(caustic_layer, (190, 245, 255, 18), False, points, 1)
     screen.blit(caustic_layer, (0, 0))
 
-    floor_y = height - 42
-    pygame.draw.polygon(
-        screen,
-        (9, 45, 53),
-        [(0, height), (0, floor_y + 10), (150, floor_y - 16), (360, floor_y + 8),
-         (560, floor_y - 22), (width, floor_y + 4), (width, height)],
-    )
+    if not background:
+        floor_y = height - 42
+        pygame.draw.polygon(
+            screen,
+            (9, 45, 53),
+            [(0, height), (0, floor_y + 10), (150, floor_y - 16), (360, floor_y + 8),
+             (560, floor_y - 22), (width, floor_y + 4), (width, height)],
+        )
 
-    plant_layer = pygame.Surface((width, height), pygame.SRCALPHA)
-    for i, x in enumerate(range(24, width, 58)):
-        base = height - 34 + (i % 3) * 4
-        blade_h = 38 + (i % 5) * 11
-        sway = math.sin(elapsed * 0.8 + i) * 8
-        pygame.draw.line(plant_layer, (28, 126, 106, 105), (x, base), (x + sway, base - blade_h), 4)
-        pygame.draw.line(plant_layer, (42, 158, 126, 90), (x + 8, base), (x + 5 + sway * 0.5, base - blade_h * 0.75), 3)
-    screen.blit(plant_layer, (0, 0))
+        plant_layer = pygame.Surface((width, height), pygame.SRCALPHA)
+        for i, x in enumerate(range(24, width, 58)):
+            base = height - 34 + (i % 3) * 4
+            blade_h = 38 + (i % 5) * 11
+            sway = math.sin(elapsed * 0.8 + i) * 8
+            pygame.draw.line(plant_layer, (28, 126, 106, 105), (x, base), (x + sway, base - blade_h), 4)
+            pygame.draw.line(plant_layer, (42, 158, 126, 90), (x + 8, base), (x + 5 + sway * 0.5, base - blade_h * 0.75), 3)
+        screen.blit(plant_layer, (0, 0))
 
 
 class RisingBubbleField:

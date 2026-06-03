@@ -24,6 +24,9 @@ wandb/
 .DS_Store
 Thumbs.db
 
+# Node / Remotion
+node_modules/
+
 # Jupyter
 .ipynb_checkpoints/
 
