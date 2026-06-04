@@ -6,7 +6,7 @@ from core.scene_manager import SceneManager
 def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Bubbles - 老鼠人")
+    pygame.display.set_caption(WINDOW_TITLE)
     clock = pygame.time.Clock()
     
     manager = SceneManager(screen)

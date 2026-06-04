@@ -170,12 +170,12 @@ class ButtonMenu:
 class MainMenu(ButtonMenu):
     def __init__(self):
         self.bubble_field = RisingBubbleField()
-        super().__init__("泡泡上升", [
-            {"label": "开始游戏", "action": "start"},
-            {"label": "继续游戏", "action": "continue"},
-            {"label": "关卡目录", "action": "levels"},
-            {"label": "设置", "action": "settings"},
-            {"label": "退出", "action": "quit"},
+        super().__init__("Bubbles", [
+            {"label": "Start", "action": "start"},
+            {"label": "Continue", "action": "continue"},
+            {"label": "Levels", "action": "levels"},
+            {"label": "Settings", "action": "settings"},
+            {"label": "Quit", "action": "quit"},
         ], start_y=200)
 
     def render(self, screen, subtitle=None, fill_background=True):
@@ -186,12 +186,12 @@ class MainMenu(ButtonMenu):
 
 class PauseMenu(ButtonMenu):
     def __init__(self):
-        super().__init__("暂停", [
-            {"label": "继续游戏", "action": "resume"},
-            {"label": "重新开始", "action": "restart"},
-            {"label": "关卡目录", "action": "levels"},
-            {"label": "返回主菜单", "action": "menu"},
-            {"label": "退出游戏", "action": "quit"},
+        super().__init__("Paused", [
+            {"label": "Resume", "action": "resume"},
+            {"label": "Restart", "action": "restart"},
+            {"label": "Levels", "action": "levels"},
+            {"label": "Main Menu", "action": "menu"},
+            {"label": "Quit", "action": "quit"},
         ], start_y=190)
 
     def handle_event(self, event):
@@ -214,7 +214,7 @@ class LevelSelectMenu(ButtonMenu):
         self.font = pygame.font.Font(MENU_TITLE_FONT_PATH, 46) if MENU_TITLE_FONT_PATH else pygame.font.Font(None, 46)
         self.small_font = pygame.font.Font(MENU_TEXT_FONT_PATH, 24) if MENU_TEXT_FONT_PATH else pygame.font.Font(None, 24)
         self.hint_font = pygame.font.Font(MENU_TEXT_FONT_PATH, 20) if MENU_TEXT_FONT_PATH else pygame.font.Font(None, 20)
-        self.title = "关卡海图"
+        self.title = "Level Map"
         self.hover_index = 0
         self.nodes = []
         self.level_previews = {}
@@ -347,7 +347,7 @@ class LevelSelectMenu(ButtonMenu):
         pygame.draw.circle(screen, rim, (x, y), 16, 2)
 
         if not unlocked:
-            lock = self.hint_font.render("锁", True, (60, 68, 72))
+            lock = self.hint_font.render("LOCK", True, (60, 68, 72))
             screen.blit(lock, lock.get_rect(center=(x, y + 1)))
 
         label_y = y + 36 if y < SCREEN_HEIGHT - 105 else y - 42
@@ -462,7 +462,7 @@ class LevelSelectMenu(ButtonMenu):
             gap=3,
         )
 
-        description = node["info"]["description"] if node["unlocked"] else "完成前置关卡后解锁"
+        description = node["info"]["description"] if node["unlocked"] else "Complete the previous level to unlock"
         lines = self._wrap_text(description, self.hint_font, text_width)
         line_y = rect.top + 58
         for line in lines[:4]:
@@ -492,53 +492,53 @@ class LevelSelectMenu(ButtonMenu):
             self._draw_level_detail_card(screen, selected)
 
         self._draw_glass_button(screen, self.back_rect, hovered=False)
-        back = self.hint_font.render("返回", True, (238, 250, 255))
+        back = self.hint_font.render("Back", True, (238, 250, 255))
         screen.blit(back, back.get_rect(center=self.back_rect.center))
 
 
 class SettingsMenu(ButtonMenu):
     def __init__(self, save_manager):
         self.save_manager = save_manager
-        super().__init__("设置", [], start_y=230)
+        super().__init__("Settings", [], start_y=230)
         self.refresh()
 
     def refresh(self, return_scene="menu"):
         settings = self.save_manager.data["settings"]
         options = [
-            {"label": f"背景音乐：{'开' if settings['music'] else '关'}", "action": ("toggle", "music")},
-            {"label": f"音效：{'开' if settings['sfx'] else '关'}", "action": ("toggle", "sfx")},
+            {"label": f"Music: {'On' if settings['music'] else 'Off'}", "action": ("toggle", "music")},
+            {"label": f"SFX: {'On' if settings['sfx'] else 'Off'}", "action": ("toggle", "sfx")},
         ]
         if return_scene == "game":
-            options.append({"label": "返回游戏", "action": "back"})
-            options.append({"label": "返回主菜单", "action": "menu"})
+            options.append({"label": "Back to Game", "action": "back"})
+            options.append({"label": "Main Menu", "action": "menu"})
         else:
-            options.append({"label": "返回主菜单", "action": "back"})
+            options.append({"label": "Main Menu", "action": "back"})
         self.set_options(options)
 
 
 class ResultMenu(ButtonMenu):
     def __init__(self):
         self.result = None
-        super().__init__("结算", [], start_y=250)
+        super().__init__("Results", [], start_y=250)
 
     def set_result(self, result):
         self.result = result
         if result["success"]:
             options = []
             if result.get("next_level"):
-                options.append({"label": "下一关", "action": "next"})
+                options.append({"label": "Next Level", "action": "next"})
             options.extend([
-                {"label": "重新挑战", "action": "retry"},
-                {"label": "关卡目录", "action": "levels"},
-                {"label": "返回主菜单", "action": "menu"},
+                {"label": "Retry", "action": "retry"},
+                {"label": "Levels", "action": "levels"},
+                {"label": "Main Menu", "action": "menu"},
             ])
-            self.title = "运输成功"
+            self.title = "Delivery Complete"
         else:
-            self.title = "运输失败"
+            self.title = "Delivery Failed"
             options = [
-                {"label": "重新挑战", "action": "retry"},
-                {"label": "关卡目录", "action": "levels"},
-                {"label": "返回主菜单", "action": "menu"},
+                {"label": "Retry", "action": "retry"},
+                {"label": "Levels", "action": "levels"},
+                {"label": "Main Menu", "action": "menu"},
             ]
         self.set_options(options)
 
@@ -546,7 +546,7 @@ class ResultMenu(ButtonMenu):
         subtitle = None
         if self.result:
             if self.result["success"]:
-                subtitle = f"能量种子：{self.result['energy_collected']}/{self.result['energy_total']}"
+                subtitle = f"Energy Seeds: {self.result['energy_collected']}/{self.result['energy_total']}"
             else:
                 subtitle = self.result["reason"]
         super().render(screen, subtitle)

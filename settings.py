@@ -1,6 +1,7 @@
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 FPS = 60
+WINDOW_TITLE = "Bubbles"
 
 # 物理参数
 BASE_DENSITY = 1.0          # 水的密度
@@ -33,60 +34,7 @@ COLLECTIBLE_RADIUS = 12
 ENERGY_COLOR = (255, 220, 50)       # 能量种子：金色
 BUBBLE_SMALL_COLOR = (150, 200, 255) # 小泡泡：浅蓝
 
-# 字体设置
-import os
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# 优先使用项目内置字体，避免不同操作系统缺少中文字体导致乱码/方块。
-_PROJECT_FONT_CANDIDATES = [
-    os.path.join(BASE_DIR, "assets", "fonts", "NotoSansCJKsc-Regular.otf"),
-    os.path.join(BASE_DIR, "assets", "fonts", "NotoSansSC-Regular.otf"),
-    os.path.join(BASE_DIR, "assets", "fonts", "SourceHanSansSC-Regular.otf"),
-]
-
-_PROJECT_TITLE_FONT_CANDIDATES = [
-    os.path.join(BASE_DIR, "assets", "fonts", "NotoSansCJKsc-Bold.otf"),
-    os.path.join(BASE_DIR, "assets", "fonts", "NotoSansSC-Bold.otf"),
-    os.path.join(BASE_DIR, "assets", "fonts", "SourceHanSansSC-Bold.otf"),
-]
-
-# 系统字体仅作兜底，覆盖 Windows / macOS / 常见 Linux 发行版。
-_SYSTEM_TEXT_FONT_CANDIDATES = [
-    "C:/Windows/Fonts/msyh.ttc",
-    "C:/Windows/Fonts/simhei.ttf",
-    "C:/Windows/Fonts/simsun.ttc",
-    "C:/Windows/Fonts/Deng.ttf",
-    "/System/Library/Fonts/PingFang.ttc",
-    "/System/Library/Fonts/STHeiti Light.ttc",
-    "/Library/Fonts/Arial Unicode.ttf",
-    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-    "/usr/share/fonts/opentype/noto/NotoSansCJKsc-Regular.otf",
-    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-]
-
-_SYSTEM_TITLE_FONT_CANDIDATES = [
-    "C:/Windows/Fonts/msyhbd.ttc",
-    "C:/Windows/Fonts/simhei.ttf",
-    "/System/Library/Fonts/PingFang.ttc",
-    "/System/Library/Fonts/STHeiti Medium.ttc",
-    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
-    "/usr/share/fonts/opentype/noto/NotoSansCJKsc-Bold.otf",
-    "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
-    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-]
-
-
-def _first_existing_font(candidates):
-    for path in candidates:
-        if os.path.exists(path):
-            return path
-    return None
-
-
-FONT_PATH = _first_existing_font(_PROJECT_FONT_CANDIDATES + _SYSTEM_TEXT_FONT_CANDIDATES)
-MENU_TITLE_FONT_PATH = _first_existing_font(
-    _PROJECT_TITLE_FONT_CANDIDATES + _PROJECT_FONT_CANDIDATES + _SYSTEM_TITLE_FONT_CANDIDATES
-) or FONT_PATH
-MENU_TEXT_FONT_PATH = FONT_PATH
+# 字体设置：英文 UI 直接使用 pygame 默认字体，避免跨平台字体文件依赖。
+FONT_PATH = None
+MENU_TITLE_FONT_PATH = None
+MENU_TEXT_FONT_PATH = None

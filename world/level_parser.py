@@ -6,9 +6,9 @@ from core.save_manager import LEVEL_ORDER
 
 class Level:
     LEVEL_INFO = [
-        {"id": "training", "title": "教学关：火山口", "description": "熟悉体积调节与浮沉。"},
-        {"id": "deep_sea", "title": "深海通道", "description": "开始在污染边缘规划路线。"},
-        {"id": "mid_sea", "title": "中层海域", "description": "在狭窄空间中权衡资源与风险。"},
+        {"id": "training", "title": "Training Vent", "description": "Learn volume control and buoyancy."},
+        {"id": "deep_sea", "title": "Deep Sea Passage", "description": "Plan routes around pollution zones."},
+        {"id": "mid_sea", "title": "Mid-Sea Channel", "description": "Balance resources and risk in tight spaces."},
     ]
 
     @classmethod

@@ -1,6 +1,6 @@
 {
-  "title": "教学关：火山口",
-  "description": "低风险教学关：练习左右移动、释放小泡泡下沉、吸收小泡泡上浮，并理解能量种子的作用。",
+  "title": "Training Vent",
+  "description": "A low-risk lesson in movement, releasing bubbles to sink, absorbing bubbles to rise, and using energy seeds.",
   "next": "deep_sea",
   "platforms": [
     [0, 555, 800, 20],

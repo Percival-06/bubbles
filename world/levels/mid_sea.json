@@ -1,6 +1,6 @@
 {
-  "title": "中层海域",
-  "description": "综合挑战关：空间更窄，污染更密集，需要同时管理体积、能量和路线风险。",
+  "title": "Mid-Sea Channel",
+  "description": "A combined challenge with narrow spaces and denser pollution. Manage volume, energy, and route risk.",
   "next": null,
   "platforms": [
     [0, 565, 800, 18],

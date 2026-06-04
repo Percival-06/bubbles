@@ -132,16 +132,16 @@ class SceneManager:
             self.renderer.trigger_pollution_warning()
 
         if self.player.has_failed():
-            reason = "生命种子能量耗尽" if self.player.energy <= 0 else "污染值过高"
+            reason = "Life seed energy depleted" if self.player.energy <= 0 else "Pollution level too high"
             self.finish_level(False, reason)
         elif self.current_level.is_at_end(self.player):
             self.finish_level(True)
 
     def render(self, screen):
         if self.scene == "menu":
-            self.main_menu.render(screen, "保护生命种子，从深海抵达陆地")
+            self.main_menu.render(screen, "Guide the life seed from the deep sea to land")
         elif self.scene == "level_select":
-            self.level_select_menu.render(screen, "已解锁关卡可重复挑战")
+            self.level_select_menu.render(screen, "Unlocked levels can be replayed")
         elif self.scene == "settings":
             self._render_settings_scene(screen)
         elif self.scene == "game":
@@ -153,7 +153,7 @@ class SceneManager:
             self.result_menu.render(screen)
 
     def _render_settings_scene(self, screen):
-        subtitle = "当前版本提供基础开关"
+        subtitle = "Basic toggles are available"
         if self.settings_return_scene == "game" and self.player and self.current_level:
             self.renderer.render(screen, self.player, self.current_level)
             mask = pygame.Surface((screen.get_width(), screen.get_height()))

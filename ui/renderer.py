@@ -78,18 +78,18 @@ class Renderer:
         screen.blit(title, (12, 10))
 
         self._draw_bar(screen, 12, 45, 170, 10, player.energy / MAX_ENERGY,
-                       (255, 225, 90), "生命能量")
+                       (255, 225, 90), "Energy")
         self._draw_bar(screen, 12, 75, 170, 10, player.contamination / POLLUTION_LIMIT,
-                       (185, 65, 210), "污染")
+                       (185, 65, 210), "Pollution")
 
         density_text = self.small_font.render(
-            f"密度 {player.get_density():.2f}  能量种子 {level.collected_energy}/{level.total_energy}",
+            f"Density {player.get_density():.2f}  Seeds {level.collected_energy}/{level.total_energy}",
             True,
             (220, 235, 245),
         )
         screen.blit(density_text, (12, 100))
         if pygame.time.get_ticks() < getattr(self, "_pollution_flash_until", 0):
-            warning = self.small_font.render("污染接触！能量消耗加快", True, (255, 188, 255))
+            warning = self.small_font.render("Pollution contact! Energy drains faster", True, (255, 188, 255))
             screen.blit(warning, (12, 128))
         self._draw_level_stars(screen, level)
 

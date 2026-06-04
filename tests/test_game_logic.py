@@ -1,5 +1,7 @@
 import json
 import os
+import ast
+import re
 import sys
 import tempfile
 import types
@@ -77,6 +79,7 @@ except ModuleNotFoundError:
 
 import pygame
 
+import settings
 from core.save_manager import LEVEL_ORDER, SaveManager
 from core.scene_manager import SceneManager
 from entities.bubble import Bubble
@@ -86,6 +89,52 @@ from ui import background as background_ui
 from ui.renderer import Renderer
 from ui.stars import badge_star_count
 from world.level_parser import Level
+
+
+class EnglishUiTextTests(unittest.TestCase):
+    def test_player_facing_text_uses_default_font_friendly_ascii(self):
+        cjk_pattern = re.compile(r"[\u4e00-\u9fff]")
+        source_paths = [
+            "main.py",
+            "settings.py",
+            os.path.join("core", "scene_manager.py"),
+            os.path.join("ui", "menus.py"),
+            os.path.join("ui", "renderer.py"),
+        ]
+        json_paths = [
+            os.path.join("world", "levels", name)
+            for name in os.listdir(os.path.join("world", "levels"))
+            if name.endswith(".json")
+        ]
+        strings = []
+
+        for path in source_paths:
+            with open(path, "r", encoding="utf-8") as f:
+                tree = ast.parse(f.read(), filename=path)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                    strings.append((path, node.value))
+
+        def collect_json_strings(value, path):
+            if isinstance(value, str):
+                strings.append((path, value))
+            elif isinstance(value, list):
+                for item in value:
+                    collect_json_strings(item, path)
+            elif isinstance(value, dict):
+                for item in value.values():
+                    collect_json_strings(item, path)
+
+        for path in json_paths:
+            with open(path, "r", encoding="utf-8") as f:
+                collect_json_strings(json.load(f), path)
+
+        offending = [(path, text) for path, text in strings if cjk_pattern.search(text)]
+
+        self.assertEqual(offending, [])
+        self.assertIsNone(settings.FONT_PATH)
+        self.assertIsNone(settings.MENU_TITLE_FONT_PATH)
+        self.assertIsNone(settings.MENU_TEXT_FONT_PATH)
 
 
 class SaveManagerTests(unittest.TestCase):
@@ -390,8 +439,8 @@ class SceneManagerMenuTests(unittest.TestCase):
 
         labels = [option["label"] for option in captured["options"]]
         actions = [option["action"] for option in captured["options"]]
-        self.assertIn("返回游戏", labels)
-        self.assertIn("返回主菜单", labels)
+        self.assertIn("Back to Game", labels)
+        self.assertIn("Main Menu", labels)
         self.assertIn("back", actions)
         self.assertIn("menu", actions)
 
