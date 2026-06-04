@@ -13,6 +13,7 @@ class Renderer:
         self._animated_level = None
         self._animated_energy = 0
         self._star_animations = {}
+        self._pollution_flash_until = 0
 
     def reset_level_stars(self, level):
         self._animated_level = getattr(level, "name", None)
@@ -27,6 +28,9 @@ class Renderer:
         for index in range(previous, level.collected_energy):
             self._star_animations[index] = now + (index - previous) * 100
         self._animated_energy = level.collected_energy
+
+    def trigger_pollution_warning(self):
+        self._pollution_flash_until = pygame.time.get_ticks() + 450
 
     def render(self, screen, player, level):
         if self._animated_level != getattr(level, "name", None):
@@ -84,6 +88,9 @@ class Renderer:
             (220, 235, 245),
         )
         screen.blit(density_text, (12, 100))
+        if pygame.time.get_ticks() < getattr(self, "_pollution_flash_until", 0):
+            warning = self.small_font.render("污染接触！能量消耗加快", True, (255, 188, 255))
+            screen.blit(warning, (12, 128))
         self._draw_level_stars(screen, level)
 
     def _draw_level_stars(self, screen, level):

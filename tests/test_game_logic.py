@@ -18,6 +18,28 @@ except ModuleNotFoundError:
             self.y = y
             self.w = w
             self.h = h
+            self.width = w
+            self.height = h
+
+        @property
+        def left(self):
+            return self.x
+
+        @property
+        def right(self):
+            return self.x + self.w
+
+        @property
+        def top(self):
+            return self.y
+
+        @property
+        def bottom(self):
+            return self.y + self.h
+
+        @property
+        def center(self):
+            return (self.x + self.w // 2, self.y + self.h // 2)
 
         def colliderect(self, other):
             return not (
@@ -33,12 +55,21 @@ except ModuleNotFoundError:
     pygame_stub.Rect = Rect
     pygame_stub.KEYDOWN = 1
     pygame_stub.MOUSEBUTTONDOWN = 2
+    pygame_stub.MOUSEMOTION = 3
     pygame_stub.K_LEFT = 276
     pygame_stub.K_RIGHT = 275
+    pygame_stub.K_UP = 273
+    pygame_stub.K_DOWN = 274
     pygame_stub.K_a = 97
     pygame_stub.K_d = 100
+    pygame_stub.K_w = 119
+    pygame_stub.K_s = 115
+    pygame_stub.K_RETURN = 13
+    pygame_stub.K_SPACE = 32
+    pygame_stub.K_ESCAPE = 27
     pygame_stub.K_x = 120
     pygame_stub.key = types.SimpleNamespace(get_pressed=lambda: {})
+    pygame_stub.time = types.SimpleNamespace(get_ticks=lambda: 1000)
     pygame_stub.Surface = lambda *args, **kwargs: None
     pygame_stub.SRCALPHA = 1
     pygame_stub.draw = types.SimpleNamespace(circle=lambda *args, **kwargs: None)
@@ -46,10 +77,10 @@ except ModuleNotFoundError:
 
 import pygame
 
-from core.save_manager import SaveManager
+from core.save_manager import LEVEL_ORDER, SaveManager
 from core.scene_manager import SceneManager
 from entities.bubble import Bubble
-from settings import MAX_ENERGY, POLLUTION_LIMIT
+from settings import MAX_ENERGY, POLLUTION_LIMIT, SCREEN_HEIGHT, SCREEN_WIDTH
 from ui.menus import ButtonMenu, SettingsMenu
 from ui import background as background_ui
 from ui.renderer import Renderer
@@ -77,6 +108,26 @@ class SaveManagerTests(unittest.TestCase):
 
             self.assertTrue(reloaded.is_unlocked("deep_sea"))
             self.assertEqual(reloaded.data["best_badges"]["training"], "gold")
+
+    def test_legacy_partial_settings_merge_with_defaults(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "save.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump({"settings": {"music": False}}, f)
+
+            save = SaveManager(path)
+
+            self.assertFalse(save.data["settings"]["music"])
+            self.assertTrue(save.data["settings"]["sfx"])
+
+    def test_best_badge_never_downgrades(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            save = SaveManager(os.path.join(tmp, "save.json"))
+
+            save.record_result("training", "gold")
+            save.record_result("training", "silver")
+
+            self.assertEqual(save.data["best_badges"]["training"], "gold")
 
 
 class LevelTests(unittest.TestCase):
@@ -258,6 +309,34 @@ class SceneManagerMenuTests(unittest.TestCase):
 
         self.assertEqual(manager.renderer.triggered, 1)
 
+    def test_hazard_contact_triggers_pollution_warning(self):
+        class NoPressedKeys:
+            def __getitem__(self, key):
+                return False
+
+        manager = SceneManager.__new__(SceneManager)
+        manager.scene = "game"
+        manager.player = Bubble(100, 100)
+        manager.current_level = Level("training")
+        manager.current_level.collectibles = []
+        manager.current_level.hazards = [[80, 80, 60, 60]]
+        manager.current_level.end_pos = (700, 50)
+        manager.renderer = type("Renderer", (), {
+            "pollution_warnings": 0,
+            "trigger_energy_collection": lambda self, level, count=1: None,
+            "trigger_pollution_warning": lambda self: setattr(self, "pollution_warnings", self.pollution_warnings + 1),
+        })()
+        manager.finish_level = lambda *args, **kwargs: None
+
+        original_get_pressed = pygame.key.get_pressed
+        pygame.key.get_pressed = lambda: NoPressedKeys()
+        try:
+            manager.update(1 / 60)
+        finally:
+            pygame.key.get_pressed = original_get_pressed
+
+        self.assertEqual(manager.renderer.pollution_warnings, 1)
+
     def test_game_settings_button_opens_settings_and_returns_to_game(self):
         manager = SceneManager.__new__(SceneManager)
         manager.scene = "game"
@@ -330,6 +409,77 @@ class RendererHudTests(unittest.TestCase):
         self.assertTrue(renderer.is_settings_button_hit((774, 26)))
         self.assertFalse(renderer.is_settings_button_hit((730, 26)))
         self.assertFalse(renderer.is_settings_button_hit((774, 70)))
+
+    def test_pollution_warning_sets_short_lived_flash_state(self):
+        renderer = Renderer.__new__(Renderer)
+
+        renderer.trigger_pollution_warning()
+
+        self.assertGreater(renderer._pollution_flash_until, pygame.time.get_ticks())
+
+
+class LevelSelectMenuTests(unittest.TestCase):
+    def _menu(self, unlocked_level="training"):
+        save = type("Save", (), {
+            "data": {
+                "unlocked_level": unlocked_level,
+                "completed_levels": [],
+                "best_badges": {"training": "gold"},
+            },
+            "is_unlocked": lambda self, level_id: LEVEL_ORDER.index(level_id) <= LEVEL_ORDER.index(unlocked_level),
+        })()
+        menu = __import__("ui.menus", fromlist=["LevelSelectMenu"]).LevelSelectMenu.__new__(
+            __import__("ui.menus", fromlist=["LevelSelectMenu"]).LevelSelectMenu
+        )
+        menu.save_manager = save
+        menu.hover_index = 0
+        menu.nodes = []
+        menu.level_previews = {}
+        menu.back_rect = pygame.Rect(642, 532, 118, 42)
+        menu.refresh()
+        return menu
+
+    def test_locked_level_click_does_not_start_level(self):
+        menu = self._menu("training")
+        locked_node = menu.nodes[1]
+
+        result = menu.handle_event(type("Event", (), {
+            "type": pygame.MOUSEBUTTONDOWN,
+            "button": 1,
+            "pos": locked_node["pos"],
+        })())
+
+        self.assertIsNone(result)
+
+    def test_keyboard_navigation_stays_on_unlocked_levels(self):
+        menu = self._menu("training")
+        menu.hover_index = 0
+
+        menu.handle_event(type("Event", (), {"type": pygame.KEYDOWN, "key": pygame.K_RIGHT})())
+
+        self.assertEqual(menu.hover_index, 0)
+
+    def test_back_button_returns_back_action(self):
+        menu = self._menu("training")
+
+        result = menu.handle_event(type("Event", (), {
+            "type": pygame.MOUSEBUTTONDOWN,
+            "button": 1,
+            "pos": menu.back_rect.center,
+        })())
+
+        self.assertEqual(result, "back")
+
+    def test_detail_card_is_clamped_inside_screen(self):
+        menu = self._menu("mid_sea")
+        edge_node = {"pos": (790, 580)}
+
+        rect = menu._detail_card_rect(edge_node)
+
+        self.assertGreaterEqual(rect.left, 24)
+        self.assertGreaterEqual(rect.top, 112)
+        self.assertLessEqual(rect.right, SCREEN_WIDTH - 24)
+        self.assertLessEqual(rect.bottom, SCREEN_HEIGHT - 92)
 
 
 class BackgroundRenderTests(unittest.TestCase):

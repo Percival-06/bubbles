@@ -35,7 +35,14 @@ class SaveManager:
             loaded = {}
 
         data = self._default_data()
+        default_settings = data["settings"].copy()
         data.update({k: v for k, v in loaded.items() if k in data})
+        if isinstance(loaded.get("settings"), dict):
+            data["settings"] = default_settings
+            data["settings"].update({
+                k: v for k, v in loaded["settings"].items()
+                if k in data["settings"] and isinstance(v, bool)
+            })
         if data["unlocked_level"] not in LEVEL_ORDER:
             data["unlocked_level"] = LEVEL_ORDER[0]
         return data

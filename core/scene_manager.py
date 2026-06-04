@@ -127,7 +127,9 @@ class SceneManager:
         collected = self.current_level.handle_collectibles(self.player)
         if collected["energy"]:
             self.renderer.trigger_energy_collection(self.current_level, collected["energy"])
-        self.current_level.apply_hazards(self.player, dt)
+        touched_hazard = self.current_level.apply_hazards(self.player, dt)
+        if touched_hazard and hasattr(self.renderer, "trigger_pollution_warning"):
+            self.renderer.trigger_pollution_warning()
 
         if self.player.has_failed():
             reason = "生命种子能量耗尽" if self.player.energy <= 0 else "污染值过高"
