@@ -35,25 +35,58 @@ BUBBLE_SMALL_COLOR = (150, 200, 255) # 小泡泡：浅蓝
 
 # 字体设置
 import os
-# 尝试加载系统自带的中文字体（按优先级排列）
-_FONT_CANDIDATES = [
-    "C:/Windows/Fonts/msyh.ttc",      # 微软雅黑
-    "C:/Windows/Fonts/simhei.ttf",    # 黑体
-    "C:/Windows/Fonts/simsun.ttc",    # 宋体
-    "C:/Windows/Fonts/Deng.ttf",      # 等线
-    "C:/Windows/Fonts/msyhbd.ttc",    # 微软雅黑加粗
-]
-FONT_PATH = None
-for _f in _FONT_CANDIDATES:
-    if os.path.exists(_f):
-        FONT_PATH = _f
-        break
 
-MENU_TITLE_FONT_PATH = next(
-    (_f for _f in ("C:/Windows/Fonts/msyhbd.ttc", "C:/Windows/Fonts/simhei.ttf") if os.path.exists(_f)),
-    FONT_PATH,
-)
-MENU_TEXT_FONT_PATH = next(
-    (_f for _f in ("C:/Windows/Fonts/Deng.ttf", "C:/Windows/Fonts/msyh.ttc") if os.path.exists(_f)),
-    FONT_PATH,
-)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 优先使用项目内置字体，避免不同操作系统缺少中文字体导致乱码/方块。
+_PROJECT_FONT_CANDIDATES = [
+    os.path.join(BASE_DIR, "assets", "fonts", "NotoSansCJKsc-Regular.otf"),
+    os.path.join(BASE_DIR, "assets", "fonts", "NotoSansSC-Regular.otf"),
+    os.path.join(BASE_DIR, "assets", "fonts", "SourceHanSansSC-Regular.otf"),
+]
+
+_PROJECT_TITLE_FONT_CANDIDATES = [
+    os.path.join(BASE_DIR, "assets", "fonts", "NotoSansCJKsc-Bold.otf"),
+    os.path.join(BASE_DIR, "assets", "fonts", "NotoSansSC-Bold.otf"),
+    os.path.join(BASE_DIR, "assets", "fonts", "SourceHanSansSC-Bold.otf"),
+]
+
+# 系统字体仅作兜底，覆盖 Windows / macOS / 常见 Linux 发行版。
+_SYSTEM_TEXT_FONT_CANDIDATES = [
+    "C:/Windows/Fonts/msyh.ttc",
+    "C:/Windows/Fonts/simhei.ttf",
+    "C:/Windows/Fonts/simsun.ttc",
+    "C:/Windows/Fonts/Deng.ttf",
+    "/System/Library/Fonts/PingFang.ttc",
+    "/System/Library/Fonts/STHeiti Light.ttc",
+    "/Library/Fonts/Arial Unicode.ttf",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJKsc-Regular.otf",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+]
+
+_SYSTEM_TITLE_FONT_CANDIDATES = [
+    "C:/Windows/Fonts/msyhbd.ttc",
+    "C:/Windows/Fonts/simhei.ttf",
+    "/System/Library/Fonts/PingFang.ttc",
+    "/System/Library/Fonts/STHeiti Medium.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJKsc-Bold.otf",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
+    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+]
+
+
+def _first_existing_font(candidates):
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
+
+
+FONT_PATH = _first_existing_font(_PROJECT_FONT_CANDIDATES + _SYSTEM_TEXT_FONT_CANDIDATES)
+MENU_TITLE_FONT_PATH = _first_existing_font(
+    _PROJECT_TITLE_FONT_CANDIDATES + _PROJECT_FONT_CANDIDATES + _SYSTEM_TITLE_FONT_CANDIDATES
+) or FONT_PATH
+MENU_TEXT_FONT_PATH = FONT_PATH
