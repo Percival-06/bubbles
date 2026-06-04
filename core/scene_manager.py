@@ -124,7 +124,9 @@ class SceneManager:
 
         self.player.update(dt, self.current_level)
         self.current_level.update(dt)
-        self.current_level.handle_collectibles(self.player)
+        collected = self.current_level.handle_collectibles(self.player)
+        if collected["energy"]:
+            self.renderer.trigger_energy_collection(self.current_level, collected["energy"])
         self.current_level.apply_hazards(self.player, dt)
 
         if self.player.has_failed():
@@ -164,6 +166,7 @@ class SceneManager:
         self.current_level = Level(level_name)
         self.player = Bubble(*self.current_level.start_pos)
         self.current_level_name = level_name
+        self.renderer.reset_level_stars(self.current_level)
         self.scene = "game"
 
     def finish_level(self, success, reason=""):

@@ -16,7 +16,7 @@ TEXT_COLOR = (255, 255, 255)
 
 # 其余参数
 WATER_DENSITY = 1.0        # 水的参考密度
-BUOYANCY_ACCEL = -300      # 浮力加速度（屏幕坐标 y 向下为正，负值表示上浮）
+BUOYANCY_ACCEL = -1400     # 浮力加速度（屏幕坐标 y 向下为正，负值表示上浮）
 DRAG_COEFF = 0.95          # 水阻力系数（每帧）
 VOLUME_TO_RADIUS = 0.25    # 体积→半径缩放因子（便于视觉）
 BASE_RADIUS = 28

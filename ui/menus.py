@@ -2,7 +2,74 @@ import pygame
 from settings import *
 from core.save_manager import LEVEL_ORDER
 from ui.background import RisingBubbleField, draw_ocean_background
+from ui.stars import badge_star_count, draw_star_row
 from world.level_parser import Level
+
+
+def _draw_liquid_glass_rect(screen, rect, radius=16, hovered=False, disabled=False, panel=False):
+    glow_pad = 18 if panel else 13
+    layer = pygame.Surface((rect.width + glow_pad * 2, rect.height + glow_pad * 2), pygame.SRCALPHA)
+    local = pygame.Rect(glow_pad, glow_pad, rect.width, rect.height)
+
+    if disabled:
+        glow = (185, 210, 225, 18)
+        top = (246, 252, 255, 34)
+        middle = (170, 202, 220, 38)
+        bottom = (44, 72, 92, 82)
+        rim = (230, 245, 255, 72)
+        inner = (255, 255, 255, 28)
+    elif hovered:
+        glow = (150, 222, 255, 78)
+        top = (255, 255, 255, 112)
+        middle = (194, 238, 255, 66)
+        bottom = (62, 160, 222, 82)
+        rim = (255, 255, 255, 232)
+        inner = (190, 238, 255, 120)
+    else:
+        glow = (130, 216, 255, 42)
+        top = (255, 255, 255, 78)
+        middle = (196, 236, 255, 48)
+        bottom = (44, 130, 194, 70)
+        rim = (246, 254, 255, 168)
+        inner = (200, 238, 255, 72)
+
+    pygame.draw.rect(layer, glow, local.inflate(24, 24), border_radius=radius + 12)
+    pygame.draw.rect(layer, (255, 255, 255, 24 if hovered else 14), local.inflate(7, 7), 1, border_radius=radius + 4)
+
+    clipped = rect.clip(screen.get_rect())
+    if clipped.width and clipped.height:
+        backdrop = screen.subsurface(clipped).copy()
+        tiny_size = (max(1, clipped.width // 6), max(1, clipped.height // 6))
+        backdrop = pygame.transform.smoothscale(backdrop, tiny_size)
+        backdrop = pygame.transform.smoothscale(backdrop, clipped.size)
+        backdrop.set_alpha(64 if hovered else 46)
+        layer.blit(backdrop, (local.left + clipped.left - rect.left, local.top + clipped.top - rect.top))
+
+    for y in range(rect.height):
+        t = y / max(1, rect.height - 1)
+        if t < 0.45:
+            k = t / 0.45
+            color = tuple(int(top[i] + (middle[i] - top[i]) * k) for i in range(4))
+        else:
+            k = (t - 0.45) / 0.55
+            color = tuple(int(middle[i] + (bottom[i] - middle[i]) * k) for i in range(4))
+        pygame.draw.rect(layer, color, pygame.Rect(local.left, local.top + y, local.width, 1))
+
+    mask = pygame.Surface(layer.get_size(), pygame.SRCALPHA)
+    pygame.draw.rect(mask, (255, 255, 255, 255), local, border_radius=radius)
+    layer.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+    shine_height = max(14, min(44, rect.height // 3))
+    shine = pygame.Rect(local.left + 9, local.top + 6, local.width - 18, shine_height)
+    pygame.draw.rect(layer, (255, 255, 255, 74 if hovered else 48), shine, border_radius=max(6, radius - 2))
+    pygame.draw.line(layer, (255, 255, 255, 178 if hovered else 118), (local.left + 18, local.top + 7), (local.right - 18, local.top + 7), 1)
+    pygame.draw.line(layer, (255, 255, 255, 92), (local.left + 12, local.top + 17), (local.left + 34, local.bottom - 12), 1)
+    pygame.draw.line(layer, (255, 255, 255, 48 if hovered else 34), (local.right - 52, local.top + 10), (local.right - 18, local.bottom - 18), 1)
+    pygame.draw.arc(layer, (255, 255, 255, 86 if hovered else 54), local.inflate(-10, -10), 3.55, 5.72, 2)
+    pygame.draw.rect(layer, rim, local, 2, border_radius=radius)
+    pygame.draw.rect(layer, inner, local.inflate(-7, -7), 1, border_radius=max(2, radius - 5))
+
+    screen.blit(layer, (rect.x - glow_pad, rect.y - glow_pad))
 
 
 class ButtonMenu:
@@ -69,45 +136,7 @@ class ButtonMenu:
                 break
 
     def _draw_glass_button(self, screen, rect, hovered=False, disabled=False):
-        radius = 14
-        glow_pad = 12
-        layer = pygame.Surface((rect.width + glow_pad * 2, rect.height + glow_pad * 2), pygame.SRCALPHA)
-        local = pygame.Rect(glow_pad, glow_pad, rect.width, rect.height)
-
-        if disabled:
-            base_top = (115, 135, 154, 62)
-            base_bottom = (35, 52, 68, 108)
-            border = (185, 205, 222, 78)
-            highlight = (245, 252, 255, 55)
-        elif hovered:
-            pygame.draw.rect(layer, (110, 205, 255, 46), local.inflate(16, 16), border_radius=radius + 8)
-            base_top = (180, 232, 255, 104)
-            base_bottom = (28, 124, 188, 150)
-            border = (238, 252, 255, 226)
-            highlight = (255, 255, 255, 150)
-        else:
-            base_top = (142, 218, 250, 74)
-            base_bottom = (22, 92, 160, 126)
-            border = (218, 244, 255, 152)
-            highlight = (255, 255, 255, 100)
-
-        for y in range(rect.height):
-            t = y / max(1, rect.height - 1)
-            color = tuple(int(base_top[i] + (base_bottom[i] - base_top[i]) * t) for i in range(4))
-            line = pygame.Rect(local.left, local.top + y, local.width, 1)
-            pygame.draw.rect(layer, color, line)
-
-        mask = pygame.Surface(layer.get_size(), pygame.SRCALPHA)
-        pygame.draw.rect(mask, (255, 255, 255, 255), local, border_radius=radius)
-        layer.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-
-        shine = pygame.Rect(local.left + 10, local.top + 6, local.width - 20, max(8, local.height // 3))
-        pygame.draw.rect(layer, highlight, shine, border_radius=radius)
-        pygame.draw.line(layer, (255, 255, 255, 86), (local.left + 18, local.top + 7), (local.right - 18, local.top + 7), 1)
-        pygame.draw.rect(layer, border, local, 2, border_radius=radius)
-        pygame.draw.rect(layer, (255, 255, 255, 52), local.inflate(-7, -7), 1, border_radius=radius - 4)
-
-        screen.blit(layer, (rect.x - glow_pad, rect.y - glow_pad))
+        _draw_liquid_glass_rect(screen, rect, radius=14, hovered=hovered, disabled=disabled)
 
     def render(self, screen, subtitle=None, fill_background=True):
         if fill_background:
@@ -188,6 +217,7 @@ class LevelSelectMenu(ButtonMenu):
         self.title = "关卡海图"
         self.hover_index = 0
         self.nodes = []
+        self.level_previews = {}
         self.back_rect = pygame.Rect(SCREEN_WIDTH - 158, SCREEN_HEIGHT - 68, 118, 42)
         self.refresh()
 
@@ -329,8 +359,118 @@ class LevelSelectMenu(ButtonMenu):
         screen.blit(label, label.get_rect(center=(x, label_y)))
 
         if node["badge"]:
-            badge = self.hint_font.render(node["badge"], True, (255, 226, 104))
-            screen.blit(badge, badge.get_rect(center=(x, label_y + 22)))
+            draw_star_row(
+                screen,
+                (x, label_y + 25),
+                total=3,
+                filled=badge_star_count(node["badge"]),
+                radius=7,
+                gap=2,
+            )
+
+    def _get_level_preview(self, level_id):
+        if level_id not in self.level_previews:
+            self.level_previews[level_id] = Level(level_id)
+        return self.level_previews[level_id]
+
+    def _wrap_text(self, text, font, max_width):
+        lines = []
+        current = ""
+        for char in text:
+            candidate = current + char
+            if current and font.size(candidate)[0] > max_width:
+                lines.append(current)
+                current = char
+            else:
+                current = candidate
+        if current:
+            lines.append(current)
+        return lines
+
+    def _draw_glass_panel(self, screen, rect):
+        _draw_liquid_glass_rect(screen, rect, radius=16, panel=True)
+
+    def _draw_level_thumbnail(self, screen, rect, level):
+        pygame.draw.rect(screen, (9, 38, 64, 128), rect, border_radius=10)
+        pygame.draw.rect(screen, (213, 242, 252, 98), rect, 1, border_radius=10)
+
+        inset = 8
+        map_rect = rect.inflate(-inset * 2, -inset * 2)
+
+        def scale_point(x, y):
+            return (
+                int(map_rect.left + x / SCREEN_WIDTH * map_rect.width),
+                int(map_rect.top + y / SCREEN_HEIGHT * map_rect.height),
+            )
+
+        for hazard in level.hazards:
+            x, y = scale_point(hazard[0], hazard[1])
+            w = max(2, int(hazard[2] / SCREEN_WIDTH * map_rect.width))
+            h = max(2, int(hazard[3] / SCREEN_HEIGHT * map_rect.height))
+            pygame.draw.rect(screen, (176, 58, 72, 170), pygame.Rect(x, y, w, h), border_radius=3)
+
+        for platform in level.platforms:
+            x, y = scale_point(platform[0], platform[1])
+            w = max(3, int(platform[2] / SCREEN_WIDTH * map_rect.width))
+            h = max(2, int(platform[3] / SCREEN_HEIGHT * map_rect.height))
+            pygame.draw.rect(screen, (190, 226, 216, 210), pygame.Rect(x, y, w, h), border_radius=3)
+
+        for collectible in level.collectibles:
+            x, y = scale_point(collectible[0], collectible[1])
+            if collectible[2] == "energy":
+                pygame.draw.circle(screen, (255, 224, 86), (x, y), 3)
+            elif collectible[2] == "bubble":
+                pygame.draw.circle(screen, (142, 223, 255), (x, y), 3, 1)
+
+        start = scale_point(*level.start_pos)
+        end = scale_point(*level.end_pos)
+        pygame.draw.circle(screen, (105, 230, 164), start, 5)
+        pygame.draw.circle(screen, (255, 204, 96), end, 5)
+        pygame.draw.circle(screen, (255, 255, 255), end, 5, 1)
+
+    def _detail_card_rect(self, node):
+        width = 346
+        height = 146
+        margin = 24
+        x = node["pos"][0] + 44
+        y = node["pos"][1] - height // 2
+        x = max(margin, min(x, SCREEN_WIDTH - width - margin))
+        y = max(112, min(y, SCREEN_HEIGHT - height - 92))
+        return pygame.Rect(x, y, width, height)
+
+    def _draw_level_detail_card(self, screen, node):
+        rect = self._detail_card_rect(node)
+        self._draw_glass_panel(screen, rect)
+
+        level = self._get_level_preview(node["info"]["id"])
+        thumb_rect = pygame.Rect(rect.left + 16, rect.top + 18, 124, rect.height - 36)
+        self._draw_level_thumbnail(screen, thumb_rect, level)
+
+        text_x = thumb_rect.right + 18
+        text_width = rect.right - text_x - 16
+        title_color = (255, 252, 226) if node["unlocked"] else (184, 194, 202)
+        title_shadow = self.small_font.render(node["info"]["title"], True, (4, 21, 38))
+        title = self.small_font.render(node["info"]["title"], True, title_color)
+        screen.blit(title_shadow, (text_x + 1, rect.top + 21))
+        screen.blit(title, (text_x, rect.top + 19))
+        draw_star_row(
+            screen,
+            (rect.right - 55, rect.top + 32),
+            total=3,
+            filled=badge_star_count(node["badge"]),
+            radius=8,
+            gap=3,
+        )
+
+        description = node["info"]["description"] if node["unlocked"] else "完成前置关卡后解锁"
+        lines = self._wrap_text(description, self.hint_font, text_width)
+        line_y = rect.top + 58
+        for line in lines[:4]:
+            shadow = self.hint_font.render(line, True, (4, 21, 38))
+            text = self.hint_font.render(line, True, (226, 244, 248))
+            screen.blit(shadow, (text_x + 1, line_y + 1))
+            screen.blit(text, (text_x, line_y))
+            line_y += 23
 
     def render(self, screen, subtitle=None, fill_background=True):
         self._draw_map_background(screen)
@@ -349,11 +489,7 @@ class LevelSelectMenu(ButtonMenu):
 
         selected = self.nodes[self.hover_index] if self.nodes and self.hover_index is not None else None
         if selected:
-            hint = selected["info"]["description"]
-            if not selected["unlocked"]:
-                hint = "完成前置关卡后解锁"
-            hint_surf = self.small_font.render(hint, True, (232, 247, 250))
-            screen.blit(hint_surf, hint_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 70)))
+            self._draw_level_detail_card(screen, selected)
 
         self._draw_glass_button(screen, self.back_rect, hovered=False)
         back = self.hint_font.render("返回", True, (238, 250, 255))
@@ -410,10 +546,16 @@ class ResultMenu(ButtonMenu):
         subtitle = None
         if self.result:
             if self.result["success"]:
-                subtitle = (
-                    f"徽章：{self.result['badge']}  "
-                    f"能量种子：{self.result['energy_collected']}/{self.result['energy_total']}"
-                )
+                subtitle = f"能量种子：{self.result['energy_collected']}/{self.result['energy_total']}"
             else:
                 subtitle = self.result["reason"]
         super().render(screen, subtitle)
+        if self.result and self.result["success"]:
+            draw_star_row(
+                screen,
+                (SCREEN_WIDTH // 2, 180),
+                total=3,
+                filled=badge_star_count(self.result["badge"]),
+                radius=16,
+                gap=8,
+            )

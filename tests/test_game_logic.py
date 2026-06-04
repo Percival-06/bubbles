@@ -53,6 +53,7 @@ from settings import MAX_ENERGY, POLLUTION_LIMIT
 from ui.menus import ButtonMenu, SettingsMenu
 from ui import background as background_ui
 from ui.renderer import Renderer
+from ui.stars import badge_star_count
 from world.level_parser import Level
 
 
@@ -145,6 +146,25 @@ class BubbleTests(unittest.TestCase):
 
         self.assertLess(bubble.y, 100)
 
+    def test_new_bubble_rises_noticeably_without_input(self):
+        class NoPressedKeys:
+            def __getitem__(self, key):
+                return False
+
+        bubble = Bubble(100, 300)
+        original_get_pressed = pygame.key.get_pressed
+        pygame.key.get_pressed = lambda: NoPressedKeys()
+
+        try:
+            for _ in range(60):
+                bubble.update(1 / 60, None)
+        finally:
+            pygame.key.get_pressed = original_get_pressed
+
+        rise_distance = 300 - bubble.y
+        self.assertGreater(rise_distance, 35)
+        self.assertLess(rise_distance, 50)
+
     def test_platform_blocks_bubble_from_below(self):
         class NoPressedKeys:
             def __getitem__(self, key):
@@ -211,6 +231,33 @@ class MenuStyleTests(unittest.TestCase):
 
 
 class SceneManagerMenuTests(unittest.TestCase):
+    def test_energy_seed_collection_triggers_star_animation(self):
+        class NoPressedKeys:
+            def __getitem__(self, key):
+                return False
+
+        manager = SceneManager.__new__(SceneManager)
+        manager.scene = "game"
+        manager.player = Bubble(100, 100)
+        manager.current_level = Level("training")
+        manager.current_level.collectibles = [[100, 100, "energy"]]
+        manager.current_level.hazards = []
+        manager.current_level.end_pos = (700, 50)
+        manager.renderer = type("Renderer", (), {
+            "triggered": 0,
+            "trigger_energy_collection": lambda self, level, count=1: setattr(self, "triggered", count),
+        })()
+        manager.finish_level = lambda *args, **kwargs: None
+
+        original_get_pressed = pygame.key.get_pressed
+        pygame.key.get_pressed = lambda: NoPressedKeys()
+        try:
+            manager.update(1 / 60)
+        finally:
+            pygame.key.get_pressed = original_get_pressed
+
+        self.assertEqual(manager.renderer.triggered, 1)
+
     def test_game_settings_button_opens_settings_and_returns_to_game(self):
         manager = SceneManager.__new__(SceneManager)
         manager.scene = "game"
@@ -271,6 +318,12 @@ class SceneManagerMenuTests(unittest.TestCase):
 
 
 class RendererHudTests(unittest.TestCase):
+    def test_badges_map_to_star_counts(self):
+        self.assertEqual(badge_star_count("gold"), 3)
+        self.assertEqual(badge_star_count("silver"), 2)
+        self.assertEqual(badge_star_count("bronze"), 1)
+        self.assertEqual(badge_star_count("none"), 0)
+
     def test_settings_button_hit_area_is_top_right_only(self):
         renderer = Renderer.__new__(Renderer)
 
