@@ -1,5 +1,6 @@
 import pygame
 from settings import *
+from core.save_manager import LEVEL_ORDER
 from ui.background import RisingBubbleField, draw_ocean_background
 from world.level_parser import Level
 
@@ -181,23 +182,182 @@ class PauseMenu(ButtonMenu):
 class LevelSelectMenu(ButtonMenu):
     def __init__(self, save_manager):
         self.save_manager = save_manager
-        super().__init__("关卡目录", [], start_y=190)
+        self.font = pygame.font.Font(MENU_TITLE_FONT_PATH, 46) if MENU_TITLE_FONT_PATH else pygame.font.Font(None, 46)
+        self.small_font = pygame.font.Font(MENU_TEXT_FONT_PATH, 24) if MENU_TEXT_FONT_PATH else pygame.font.Font(None, 24)
+        self.hint_font = pygame.font.Font(MENU_TEXT_FONT_PATH, 20) if MENU_TEXT_FONT_PATH else pygame.font.Font(None, 20)
+        self.title = "关卡海图"
+        self.hover_index = 0
+        self.nodes = []
+        self.back_rect = pygame.Rect(SCREEN_WIDTH - 158, SCREEN_HEIGHT - 68, 118, 42)
         self.refresh()
 
     def refresh(self):
-        options = []
-        for info in Level.catalog():
+        catalog = Level.catalog()
+        route = self._route_points(len(catalog))
+        self.nodes = []
+        for index, info in enumerate(catalog):
             unlocked = self.save_manager.is_unlocked(info["id"])
-            badge = self.save_manager.data["best_badges"].get(info["id"])
-            suffix = f"  [{badge}]" if badge else ""
-            locked_suffix = "" if unlocked else "  [未解锁]"
-            options.append({
-                "label": info["title"] + suffix + locked_suffix,
-                "action": ("level", info["id"]),
-                "disabled": not unlocked,
+            self.nodes.append({
+                "info": info,
+                "pos": route[index],
+                "rect": pygame.Rect(route[index][0] - 24, route[index][1] - 24, 48, 48),
+                "unlocked": unlocked,
+                "badge": self.save_manager.data["best_badges"].get(info["id"]),
             })
-        options.append({"label": "返回主菜单", "action": "back"})
-        self.set_options(options)
+
+        self.hover_index = self._unlocked_index()
+
+    def _route_points(self, count):
+        anchors = [
+            (112, 414),
+            (282, 326),
+            (476, 392),
+            (642, 254),
+            (706, 146),
+        ]
+        return anchors[:count]
+
+    def _unlocked_index(self):
+        unlocked_level = self.save_manager.data.get("unlocked_level", LEVEL_ORDER[0])
+        if unlocked_level not in LEVEL_ORDER:
+            return 0
+        return min(LEVEL_ORDER.index(unlocked_level), len(self.nodes) - 1)
+
+    def _get_hover_node(self, pos):
+        for i, node in enumerate(self.nodes):
+            if node["rect"].collidepoint(pos):
+                return i
+        return None
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEMOTION:
+            hovered = self._get_hover_node(event.pos)
+            self.hover_index = hovered
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.back_rect.collidepoint(event.pos):
+                return "back"
+            index = self._get_hover_node(event.pos)
+            if index is not None and self.nodes[index]["unlocked"]:
+                return ("level", self.nodes[index]["info"]["id"])
+        elif event.type == pygame.KEYDOWN:
+            if event.key in (pygame.K_RIGHT, pygame.K_DOWN, pygame.K_d, pygame.K_s):
+                self._move_hover(1)
+            elif event.key in (pygame.K_LEFT, pygame.K_UP, pygame.K_a, pygame.K_w):
+                self._move_hover(-1)
+            elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                index = self.hover_index if self.hover_index is not None else self._unlocked_index()
+                node = self.nodes[index]
+                if node["unlocked"]:
+                    return ("level", node["info"]["id"])
+            elif event.key == pygame.K_ESCAPE:
+                return "back"
+        return None
+
+    def _move_hover(self, direction):
+        if not self.nodes:
+            return
+        index = self.hover_index if self.hover_index is not None else self._unlocked_index()
+        for _ in self.nodes:
+            index = (index + direction) % len(self.nodes)
+            if self.nodes[index]["unlocked"]:
+                self.hover_index = index
+                break
+
+    def _draw_map_background(self, screen):
+        draw_ocean_background(screen)
+        veil = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        veil.fill((17, 48, 74, 70))
+        screen.blit(veil, (0, 0))
+
+        compass_center = (82, 515)
+        pygame.draw.circle(screen, (229, 214, 159), compass_center, 35, 2)
+        pygame.draw.line(screen, (229, 214, 159), (compass_center[0], compass_center[1] - 42), (compass_center[0], compass_center[1] + 42), 2)
+        pygame.draw.line(screen, (229, 214, 159), (compass_center[0] - 42, compass_center[1]), (compass_center[0] + 42, compass_center[1]), 2)
+
+    def _draw_route_segment(self, screen, start, end, color):
+        dx = end[0] - start[0]
+        dy = end[1] - start[1]
+        steps = max(1, int((dx * dx + dy * dy) ** 0.5 // 18))
+        for step in range(steps + 1):
+            t = step / steps
+            x = int(start[0] + dx * t)
+            y = int(start[1] + dy * t)
+            pygame.draw.circle(screen, color, (x, y), 6)
+            pygame.draw.circle(screen, (255, 255, 255), (x - 2, y - 2), 2)
+
+    def _draw_routes(self, screen):
+        unlocked_index = self._unlocked_index()
+        for i in range(len(self.nodes) - 1):
+            color = (224, 67, 55) if i < unlocked_index else (118, 130, 139)
+            self._draw_route_segment(screen, self.nodes[i]["pos"], self.nodes[i + 1]["pos"], color)
+
+    def _draw_node(self, screen, node, index):
+        x, y = node["pos"]
+        unlocked = node["unlocked"]
+        hovered = self.hover_index is not None and index == self.hover_index
+        newest = index == self._unlocked_index()
+        completed = node["info"]["id"] in self.save_manager.data.get("completed_levels", [])
+
+        if not unlocked:
+            fill = (119, 126, 132)
+            rim = (179, 187, 193)
+        elif newest:
+            fill = (255, 198, 80)
+            rim = (255, 247, 207)
+        elif completed:
+            fill = (226, 72, 62)
+            rim = (255, 220, 204)
+        else:
+            fill = (96, 201, 246)
+            rim = (225, 250, 255)
+
+        if hovered:
+            pygame.draw.circle(screen, (255, 255, 255), (x, y), 19)
+        pygame.draw.circle(screen, fill, (x, y), 16)
+        pygame.draw.circle(screen, rim, (x, y), 16, 2)
+
+        if not unlocked:
+            lock = self.hint_font.render("锁", True, (60, 68, 72))
+            screen.blit(lock, lock.get_rect(center=(x, y + 1)))
+
+        label_y = y + 36 if y < SCREEN_HEIGHT - 105 else y - 42
+        title = node["info"]["title"]
+        label_color = (247, 253, 237) if unlocked else (178, 188, 194)
+        shadow = self.hint_font.render(title, True, (6, 23, 38))
+        label = self.hint_font.render(title, True, label_color)
+        screen.blit(shadow, shadow.get_rect(center=(x + 1, label_y + 2)))
+        screen.blit(label, label.get_rect(center=(x, label_y)))
+
+        if node["badge"]:
+            badge = self.hint_font.render(node["badge"], True, (255, 226, 104))
+            screen.blit(badge, badge.get_rect(center=(x, label_y + 22)))
+
+    def render(self, screen, subtitle=None, fill_background=True):
+        self._draw_map_background(screen)
+        title_shadow = self.font.render(self.title, True, (4, 22, 42))
+        screen.blit(title_shadow, title_shadow.get_rect(center=(SCREEN_WIDTH // 2 + 2, 64)))
+        title_text = self.font.render(self.title, True, (246, 254, 232))
+        screen.blit(title_text, title_text.get_rect(center=(SCREEN_WIDTH // 2, 62)))
+
+        if subtitle:
+            subtitle_surf = self.hint_font.render(subtitle, True, (213, 236, 242))
+            screen.blit(subtitle_surf, subtitle_surf.get_rect(center=(SCREEN_WIDTH // 2, 98)))
+
+        self._draw_routes(screen)
+        for index, node in enumerate(self.nodes):
+            self._draw_node(screen, node, index)
+
+        selected = self.nodes[self.hover_index] if self.nodes and self.hover_index is not None else None
+        if selected:
+            hint = selected["info"]["description"]
+            if not selected["unlocked"]:
+                hint = "完成前置关卡后解锁"
+            hint_surf = self.small_font.render(hint, True, (232, 247, 250))
+            screen.blit(hint_surf, hint_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 70)))
+
+        self._draw_glass_button(screen, self.back_rect, hovered=False)
+        back = self.hint_font.render("返回", True, (238, 250, 255))
+        screen.blit(back, back.get_rect(center=self.back_rect.center))
 
 
 class SettingsMenu(ButtonMenu):

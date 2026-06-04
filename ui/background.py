@@ -11,6 +11,7 @@ MID_WATER_COLOR = (13, 76, 116)
 DEEP_WATER_COLOR = (4, 26, 56)
 _background_source = None
 _scaled_backgrounds = {}
+_dynamic_layers = {}
 
 
 def _lerp(a, b, t):
@@ -38,6 +39,15 @@ def _get_background_image(size):
     return _scaled_backgrounds[size]
 
 
+def _get_dynamic_layer(name, size):
+    key = (name, size)
+    if key not in _dynamic_layers:
+        _dynamic_layers[key] = pygame.Surface(size, pygame.SRCALPHA)
+    layer = _dynamic_layers[key]
+    layer.fill((0, 0, 0, 0))
+    return layer
+
+
 def _draw_generated_ocean(screen, elapsed):
     width, height = screen.get_size()
     horizon = int(height * 0.42)
@@ -63,7 +73,7 @@ def draw_ocean_background(screen, elapsed=None):
     else:
         _draw_generated_ocean(screen, elapsed)
 
-    light_layer = pygame.Surface((width, height), pygame.SRCALPHA)
+    light_layer = _get_dynamic_layer("light", (width, height))
     for i, x in enumerate((-90, 130, 340, 570)):
         drift = math.sin(elapsed * 0.28 + i * 1.7) * 34
         points = [
@@ -75,7 +85,7 @@ def draw_ocean_background(screen, elapsed=None):
         pygame.draw.polygon(light_layer, (170, 230, 255, 20), points)
     screen.blit(light_layer, (0, 0))
 
-    caustic_layer = pygame.Surface((width, height), pygame.SRCALPHA)
+    caustic_layer = _get_dynamic_layer("caustic", (width, height))
     for y in range(42, height, 34):
         points = []
         for x in range(-20, width + 21, 20):
@@ -93,7 +103,7 @@ def draw_ocean_background(screen, elapsed=None):
              (560, floor_y - 22), (width, floor_y + 4), (width, height)],
         )
 
-        plant_layer = pygame.Surface((width, height), pygame.SRCALPHA)
+        plant_layer = _get_dynamic_layer("plants", (width, height))
         for i, x in enumerate(range(24, width, 58)):
             base = height - 34 + (i % 3) * 4
             blade_h = 38 + (i % 5) * 11
@@ -120,7 +130,7 @@ class RisingBubbleField:
             elapsed = pygame.time.get_ticks() / 1000.0
 
         width, height = screen.get_size()
-        bubble_layer = pygame.Surface((width, height), pygame.SRCALPHA)
+        bubble_layer = _get_dynamic_layer("rising_bubbles", (width, height))
         for bubble in self.bubbles:
             y = (bubble["y"] - elapsed * bubble["speed"]) % (height + 70) - 40
             x = bubble["x"] + math.sin(elapsed * 1.4 + bubble["phase"]) * (10 + bubble["r"] * 0.35)

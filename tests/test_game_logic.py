@@ -51,6 +51,7 @@ from core.scene_manager import SceneManager
 from entities.bubble import Bubble
 from settings import MAX_ENERGY, POLLUTION_LIMIT
 from ui.menus import ButtonMenu, SettingsMenu
+from ui import background as background_ui
 from ui.renderer import Renderer
 from world.level_parser import Level
 
@@ -276,6 +277,68 @@ class RendererHudTests(unittest.TestCase):
         self.assertTrue(renderer.is_settings_button_hit((774, 26)))
         self.assertFalse(renderer.is_settings_button_hit((730, 26)))
         self.assertFalse(renderer.is_settings_button_hit((774, 70)))
+
+
+class BackgroundRenderTests(unittest.TestCase):
+    def test_dynamic_background_layers_are_reused_between_frames(self):
+        class FakeSurface:
+            def __init__(self, size, flags=0):
+                self.size = size
+                self.flags = flags
+
+            def get_size(self):
+                return self.size
+
+            def get_width(self):
+                return self.size[0]
+
+            def get_height(self):
+                return self.size[1]
+
+            def fill(self, *args, **kwargs):
+                return None
+
+            def blit(self, *args, **kwargs):
+                return None
+
+        fake_pygame = types.SimpleNamespace(
+            SRCALPHA=1,
+            Surface=FakeSurface,
+            draw=types.SimpleNamespace(
+                polygon=lambda *args, **kwargs: None,
+                lines=lambda *args, **kwargs: None,
+            ),
+            time=types.SimpleNamespace(get_ticks=lambda: 1000),
+        )
+        screen = FakeSurface((240, 180))
+        fake_background = FakeSurface((240, 180))
+        original_pygame = background_ui.pygame
+        original_get_background_image = background_ui._get_background_image
+        created_sizes = []
+
+        def tracked_surface(*args, **kwargs):
+            created_sizes.append(args[0])
+            return FakeSurface(*args, **kwargs)
+
+        if hasattr(background_ui, "_dynamic_layers"):
+            background_ui._dynamic_layers.clear()
+
+        fake_pygame.Surface = tracked_surface
+        background_ui.pygame = fake_pygame
+        background_ui._get_background_image = lambda size: fake_background
+        try:
+            background_ui.draw_ocean_background(screen, elapsed=1.0)
+            first_count = len(created_sizes)
+            background_ui.draw_ocean_background(screen, elapsed=1.1)
+            second_count = len(created_sizes) - first_count
+        finally:
+            background_ui.pygame = original_pygame
+            background_ui._get_background_image = original_get_background_image
+            if hasattr(background_ui, "_dynamic_layers"):
+                background_ui._dynamic_layers.clear()
+
+        self.assertGreaterEqual(first_count, 2)
+        self.assertEqual(second_count, 0)
 
 
 if __name__ == "__main__":
