@@ -23,6 +23,7 @@ node_modules/
 .ipynb_checkpoints/
 
 # 其他
+.docs/
 *.docx
 *.xlsx
 *.pdf
